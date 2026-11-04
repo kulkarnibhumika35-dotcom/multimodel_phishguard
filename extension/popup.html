@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PhishGuard</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+
+<body>
+  <!-- Header -->
+  <header class="header">
+    <div class="brand">
+      <span id="brand-shield" class="shield">&#x1F6E1;</span>
+      <h1>PhishGuard</h1>
+    </div>
+    <p class="tagline">AI-Powered Threat Detection</p>
+  </header>
+
+  <!-- URL Display -->
+  <section class="url-section">
+    <label for="current-url">Current URL</label>
+    <div id="current-url" class="url-box">Loading…</div>
+  </section>
+
+  <!-- Analyze Button -->
+  <button id="analyze-btn" class="analyze-btn" disabled>Analyze Website</button>
+
+  <!-- Loading Indicator -->
+  <div id="loading" class="loading hidden">
+    <span class="spinner"></span>
+    <span>Analyzing with PhishGuard AI…</span>
+  </div>
+
+  <!-- Error Message -->
+  <div id="error-msg" class="error-msg hidden"></div>
+
+  <!-- Result Section -->
+  <section id="result-section" class="result-section hidden">
+    <h2>Analysis Result</h2>
+    <div id="analyzed-url-wrapper" class="analyzed-url-wrapper hidden">
+      <span class="result-label">Analyzed URL</span>
+      <div id="analyzed-url" class="url-box url-box-sm"></div>
+    </div>
+
+    <!-- Main Metrics Grid -->
+    <div class="result-grid">
+      <div class="result-card">
+        <span class="result-label">Category</span>
+        <span id="threat-category" class="result-value">—</span>
+        <!-- Hidden prediction element preserved for backward compatibility -->
+        <span id="prediction" class="hidden">—</span>
+      </div>
+      <div class="result-card">
+        <span class="result-label">Risk Score</span>
+        <span id="risk-score" class="result-value">—</span>
+      </div>
+      <div class="result-card">
+        <span class="result-label">Status</span>
+        <span id="status" class="result-value">—</span>
+      </div>
+    </div>
+
+    <!-- Status Notice / Recommendation Banner -->
+    <div id="info-notice" class="info-notice hidden"></div>
+
+    <!-- Category Probabilities Breakdown -->
+    <div id="probabilities-section" class="probabilities-section hidden">
+      <span class="section-subtitle">Category Probabilities</span>
+      <div class="prob-row">
+        <span class="prob-name">Legitimate</span>
+        <div class="prob-track">
+          <div id="prob-legit-bar" class="prob-bar legit-bar" style="width: 0%"></div>
+        </div>
+        <span id="prob-legit-val" class="prob-val">0.0%</span>
+      </div>
+      <div class="prob-row">
+        <span class="prob-name">Phishing</span>
+        <div class="prob-track">
+          <div id="prob-phish-bar" class="prob-bar phish-bar" style="width: 0%"></div>
+        </div>
+        <span id="prob-phish-val" class="prob-val">0.0%</span>
+      </div>
+      <div class="prob-row">
+        <span class="prob-name">Malware</span>
+        <div class="prob-track">
+          <div id="prob-malware-bar" class="prob-bar malware-bar" style="width: 0%"></div>
+        </div>
+        <span id="prob-malware-val" class="prob-val">0.0%</span>
+      </div>
+    </div>
+
+    <!-- Top SHAP Contributing Indicators -->
+    <div id="features-section" class="features-section hidden">
+      <span class="section-subtitle">Top Contributing Indicators (SHAP)</span>
+      <div id="features-list" class="features-list"></div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    PhishGuard v1.0 &mdash; Stay Safe Online
+  </footer>
+
+  <script src="popup.js"></script>
+</body>
+
+</html>

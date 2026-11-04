@@ -1,0 +1,38 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+
+# Database
+*.db
+*.sqlite3
+
+
+
+# Datasets
+datasets/raw/
+datasets/processed/
+# ML model artifacts
+ml/models/url_model.joblib
+ml/models/*.pkl
+ml/models/*.h5
+*.onnx
+
+# Environment variables
+.env
+
+# OS
+.DS_Store
+Thumbs.db
+

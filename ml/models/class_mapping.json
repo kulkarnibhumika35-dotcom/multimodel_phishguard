@@ -1,0 +1,13 @@
+{
+  "class_to_name": {
+    "0": "legitimate",
+    "1": "phishing",
+    "2": "malware_distribution"
+  },
+  "name_to_class": {
+    "legitimate": 0,
+    "phishing": 1,
+    "malware_distribution": 2
+  },
+  "num_classes": 3
+}

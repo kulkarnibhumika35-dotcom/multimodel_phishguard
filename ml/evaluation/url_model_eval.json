@@ -1,0 +1,103 @@
+{
+  "accuracy": 0.9315,
+  "precision": 0.9341,
+  "recall": 0.9315,
+  "f1_score": 0.9314,
+  "precision_macro": 0.9461,
+  "recall_macro": 0.9235,
+  "f1_macro": 0.9332,
+  "precision_weighted": 0.9341,
+  "recall_weighted": 0.9315,
+  "f1_weighted": 0.9314,
+  "macro_avg": {
+    "precision": 0.9461,
+    "recall": 0.9235,
+    "f1_score": 0.9332
+  },
+  "weighted_avg": {
+    "precision": 0.9341,
+    "recall": 0.9315,
+    "f1_score": 0.9314
+  },
+  "confusion_matrix": [
+    [
+      26337,
+      619,
+      1
+    ],
+    [
+      3014,
+      26570,
+      82
+    ],
+    [
+      3,
+      487,
+      4304
+    ]
+  ],
+  "classification_report": {
+    "legitimate": {
+      "precision": 0.8972201403556586,
+      "recall": 0.9770004080572764,
+      "f1-score": 0.9354122640336702,
+      "support": 26957.0
+    },
+    "phishing": {
+      "precision": 0.9600375776846365,
+      "recall": 0.8956381042270612,
+      "f1-score": 0.9267203794775208,
+      "support": 29666.0
+    },
+    "malware_distribution": {
+      "precision": 0.9810804650102576,
+      "recall": 0.8977889027951607,
+      "f1-score": 0.9375884979849689,
+      "support": 4794.0
+    },
+    "accuracy": 0.9315173323346956,
+    "macro avg": {
+      "precision": 0.9461127276835176,
+      "recall": 0.9234758050264995,
+      "f1-score": 0.9332403804987198,
+      "support": 61417.0
+    },
+    "weighted avg": {
+      "precision": 0.9341084366286059,
+      "recall": 0.9315173323346956,
+      "f1-score": 0.9313837282588814,
+      "support": 61417.0
+    }
+  },
+  "dataset_provenance": {
+    "dataset_path": "C:\\Users\\kulka\\OneDrive\\Desktop\\fishGuard\\datasets\\processed\\processed_urls.csv",
+    "dataset_sha256": "990c5d52260110a3ccf935fccce0480261c7ef5fc7075b232437cc3bdf1d04a0",
+    "total_samples": 307090,
+    "train_samples": 245673,
+    "test_samples": 61417,
+    "unique_domains_total": 189459,
+    "unique_domains_train": 152703,
+    "unique_domains_test": 36756,
+    "domain_leakage_count": 0,
+    "domain_leakage_rate": "0.00%",
+    "class_counts_before_split": {
+      "phishing": 148141,
+      "malware_distribution": 24103,
+      "legitimate": 134846
+    },
+    "class_counts_train": {
+      "phishing": 118475,
+      "malware_distribution": 19309,
+      "legitimate": 107889
+    },
+    "class_counts_test": {
+      "phishing": 29666,
+      "malware_distribution": 4794,
+      "legitimate": 26957
+    },
+    "trained_at": "2026-11-04T12:46:21.663003+00:00",
+    "model_type": "RandomForestClassifier",
+    "n_estimators": 100,
+    "feature_count": 20
+  }
+}
