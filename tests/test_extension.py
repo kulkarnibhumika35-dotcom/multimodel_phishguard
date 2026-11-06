@@ -101,11 +101,15 @@ def render_in_node(payload: dict[str, Any]) -> dict[str, Any]:
       predictionEl: createMockElement('prediction'),
       riskScoreEl: createMockElement('risk-score'),
       statusEl: createMockElement('status'),
+      modelRoutingEl: createMockElement('model-routing'),
+      visualStatusEl: createMockElement('visual-status'),
       infoNotice: createMockElement('info-notice', ['hidden']),
+      shadowAdvisory: createMockElement('shadow-advisory'),
       shield: createMockElement('brand-shield'),
       resultSec: createMockElement('result-section', ['hidden']),
       probEls: {{
         section: createMockElement('probabilities-section', ['hidden']),
+        legitLabel: createMockElement('prob-legit-label'),
         legitBar: createMockElement('prob-legit-bar'),
         legitVal: createMockElement('prob-legit-val'),
         phishBar: createMockElement('prob-phish-bar'),
@@ -116,7 +120,17 @@ def render_in_node(payload: dict[str, Any]) -> dict[str, Any]:
       featEls: {{
         section: createMockElement('features-section', ['hidden']),
         list: createMockElement('features-list')
-      }}
+      }},
+      multiModelDetails: createMockElement('multi-model-details', ['hidden']),
+      subUrlStatus: createMockElement('sub-url-status'),
+      subUrlPred: createMockElement('sub-url-pred'),
+      subUrlProbs: createMockElement('sub-url-probs'),
+      subMultiStatus: createMockElement('sub-multi-status'),
+      subMultiPred: createMockElement('sub-multi-pred'),
+      subMultiProbs: createMockElement('sub-multi-probs'),
+      subVisStatus: createMockElement('sub-vis-status'),
+      subVisPred: createMockElement('sub-vis-pred'),
+      subVisProbs: createMockElement('sub-vis-probs')
     }};
 
     const data = {json.dumps(payload)};
@@ -128,10 +142,21 @@ def render_in_node(payload: dict[str, Any]) -> dict[str, Any]:
       statusText: els.statusEl.textContent,
       statusClasses: els.statusEl.classList.list,
       riskScoreText: els.riskScoreEl.textContent,
+      modelRoutingText: els.modelRoutingEl ? els.modelRoutingEl.textContent : '',
+      visualStatusText: els.visualStatusEl ? els.visualStatusEl.textContent : '',
+      shadowAdvisoryHidden: els.shadowAdvisory ? els.shadowAdvisory.classList.contains('hidden') : true,
+      multiModelHidden: els.multiModelDetails ? els.multiModelDetails.classList.contains('hidden') : true,
+      subUrlStatusText: els.subUrlStatus ? els.subUrlStatus.textContent : '',
+      subUrlPredText: els.subUrlPred ? els.subUrlPred.textContent : '',
+      subMultiStatusText: els.subMultiStatus ? els.subMultiStatus.textContent : '',
+      subMultiPredText: els.subMultiPred ? els.subMultiPred.textContent : '',
+      subVisStatusText: els.subVisStatus ? els.subVisStatus.textContent : '',
+      subVisPredText: els.subVisPred ? els.subVisPred.textContent : '',
       shieldClasses: els.shield.classList.list,
       noticeText: els.infoNotice.textContent,
       noticeClasses: els.infoNotice.classList.list,
       probSectionHidden: els.probEls.section.classList.contains('hidden'),
+      probLegitLabelText: els.probEls.legitLabel ? els.probEls.legitLabel.textContent : '',
       probLegitVal: els.probEls.legitVal.textContent,
       probPhishVal: els.probEls.phishVal.textContent,
       probMalwareVal: els.probEls.malwareVal.textContent,
@@ -190,8 +215,12 @@ class TestExtensionHTMLAndCSS:
             "prediction",
             "risk-score",
             "status",
+            "model-routing",
+            "visual-status",
             "info-notice",
+            "shadow-advisory",
             "probabilities-section",
+            "prob-legit-label",
             "prob-legit-bar",
             "prob-legit-val",
             "prob-phish-bar",
@@ -200,6 +229,7 @@ class TestExtensionHTMLAndCSS:
             "prob-malware-val",
             "features-section",
             "features-list",
+            "multi-model-details",
         ]
         for el_id in required_ids:
             assert f'id="{el_id}"' in html, f"Missing element with id='{el_id}' in popup.html"
@@ -211,21 +241,29 @@ class TestExtensionHTMLAndCSS:
 
         required_classes = [
             ".status-safe",
+            ".status-candidate",
             ".status-danger",
             ".status-malware",
             ".status-warn",
             ".shield-safe",
+            ".shield-candidate",
             ".shield-danger",
             ".shield-malware",
             ".shield-warn",
             ".notice-safe",
+            ".notice-candidate",
             ".notice-danger",
             ".notice-malware",
             ".notice-warn",
+            ".meta-grid",
+            ".shadow-advisory",
+            ".multi-model-details",
             ".legit-bar",
+            ".candidate-bar",
             ".phish-bar",
             ".malware-bar",
             ".badge-safe",
+            ".badge-candidate",
             ".badge-threat",
             ".badge-malware",
         ]
@@ -260,11 +298,18 @@ class TestExtensionBackendContractAlignment:
             "prediction",
             "threat_category",
             "risk_score",
+            "confidence",
             "class_probabilities",
             "probabilities",
             "top_features",
             "explanation",
             "analysis_status",
+            "visual_status",
+            "model_routing",
+            "is_shadow_mode",
+            "url_model_result",
+            "visual_model_result",
+            "multimodal_model_result",
         }
         assert expected_extension_fields.issubset(schema_fields), (
             f"Missing fields in backend schema: {expected_extension_fields - schema_fields}"
@@ -443,3 +488,110 @@ class TestExtensionE2EIntegration:
                 headers={"Origin": self.EXTENSION_ORIGIN},
             )
             assert resp.status_code == 422
+
+    @pytest.mark.anyio
+    async def test_e2e_multimodal_full_pipeline(self, client):
+        """End-to-end: Valid screenshot triggers multimodal_full and renders telemetry."""
+        import base64
+        import cv2
+        import numpy as np
+
+        # Create a simple valid image
+        img = np.full((100, 100, 3), 200, dtype=np.uint8)
+        img[20:80, 20:80] = [50, 100, 150]
+        _, encoded = cv2.imencode(".png", img)
+        b64_str = f"data:image/png;base64,{base64.b64encode(encoded.tobytes()).decode('utf-8')}"
+
+        resp = await client.post(
+            "/analyze",
+            json={"url": "https://www.google.com", "screenshot_base64": b64_str},
+            headers={"Origin": self.EXTENSION_ORIGIN},
+        )
+        assert resp.status_code == 200
+        backend_data = resp.json()
+
+        assert backend_data["model_routing"] == "multimodal_full"
+        assert backend_data["visual_status"] == "extracted"
+        assert backend_data["is_shadow_mode"] is True
+        assert backend_data["threat_category"] == "unverified_candidate"
+        assert backend_data["prediction"] == 0
+
+        dom = render_in_node(backend_data)
+        assert dom["threatCategoryText"] == "Unverified Candidate"
+        assert dom["statusText"] == "Candidate"
+        assert "status-candidate" in dom["threatCategoryClasses"]
+        assert "status-candidate" in dom["statusClasses"]
+        assert "shield-candidate" in dom["shieldClasses"]
+        assert "notice-candidate" in dom["noticeClasses"]
+        assert "NOT been independently verified as safe" in dom["noticeText"]
+        assert dom["probLegitLabelText"] == "Candidate"
+        assert dom["modelRoutingText"] == "Multimodal Full (51 Feat)"
+        assert dom["visualStatusText"] == "Captured (30 Feat)"
+        assert dom["shadowAdvisoryHidden"] is False
+        assert dom["multiModelHidden"] is False
+
+    @pytest.mark.anyio
+    async def test_e2e_url_fallback_when_screenshot_missing(self, client):
+        """End-to-end: Missing screenshot triggers url_model_fallback routing."""
+        resp = await client.post(
+            "/analyze",
+            json={"url": "https://www.wikipedia.org"},
+            headers={"Origin": self.EXTENSION_ORIGIN},
+        )
+        assert resp.status_code == 200
+        backend_data = resp.json()
+
+        assert backend_data["model_routing"] == "url_model_fallback"
+        assert backend_data["visual_status"] == "not_provided"
+
+        dom = render_in_node(backend_data)
+        assert dom["modelRoutingText"] == "URL Fallback (20 Feat)"
+        assert dom["visualStatusText"] == "Not Provided"
+
+    @pytest.mark.anyio
+    async def test_e2e_malware_preemption_overrules_multimodal(self, client):
+        """End-to-end: Malware URL with screenshot locks routing to url_malware_preempted."""
+        import base64
+        import cv2
+        import numpy as np
+
+        img = np.full((100, 100, 3), 150, dtype=np.uint8)
+        _, encoded = cv2.imencode(".png", img)
+        b64_str = f"data:image/png;base64,{base64.b64encode(encoded.tobytes()).decode('utf-8')}"
+
+        resp = await client.post(
+            "/analyze",
+            json={"url": "http://192.168.1.1:8080/setup.exe", "screenshot_base64": b64_str},
+            headers={"Origin": self.EXTENSION_ORIGIN},
+        )
+        assert resp.status_code == 200
+        backend_data = resp.json()
+
+        assert backend_data["prediction"] == 2
+        assert backend_data["threat_category"] == "malware_distribution"
+        assert backend_data["model_routing"] == "url_malware_preempted"
+
+        dom = render_in_node(backend_data)
+        assert dom["threatCategoryText"] == "Malware"
+        assert dom["statusText"] == "Critical"
+        assert dom["modelRoutingText"] == "Malware Preempted"
+        assert "notice-malware" in dom["noticeClasses"]
+        assert dom["subMultiStatusText"] == "Overridden"
+
+    def test_extension_shadow_mode_restrictions(self):
+        """Verify extension manifest and scripts contain zero blocking or intercepting hooks."""
+        with open(MANIFEST_PATH, "r", encoding="utf-8") as f:
+            manifest = json.load(f)
+
+        forbidden_permissions = ["webRequest", "webRequestBlocking", "declarativeNetRequest", "webNavigation"]
+        for perm in forbidden_permissions:
+            assert perm not in manifest.get("permissions", []), f"Forbidden permission '{perm}' in manifest.json"
+
+        with open(POPUP_JS_PATH, "r", encoding="utf-8") as f:
+            js = f.read()
+
+        assert "chrome.webRequest" not in js
+        assert "chrome.declarativeNetRequest" not in js
+        assert "chrome.tabs.remove" not in js
+        assert "window.location.replace" not in js
+

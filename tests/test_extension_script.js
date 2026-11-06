@@ -61,11 +61,15 @@ function createMockDOMElements() {
     predictionEl: createMockElement("prediction"),
     riskScoreEl: createMockElement("risk-score"),
     statusEl: createMockElement("status"),
+    modelRoutingEl: createMockElement("model-routing"),
+    visualStatusEl: createMockElement("visual-status"),
     infoNotice: createMockElement("info-notice", ["hidden"]),
+    shadowAdvisory: createMockElement("shadow-advisory"),
     shield: createMockElement("brand-shield"),
     resultSec: createMockElement("result-section", ["hidden"]),
     probEls: {
       section: createMockElement("probabilities-section", ["hidden"]),
+      legitLabel: createMockElement("prob-legit-label"),
       legitBar: createMockElement("prob-legit-bar"),
       legitVal: createMockElement("prob-legit-val"),
       phishBar: createMockElement("prob-phish-bar"),
@@ -77,6 +81,16 @@ function createMockDOMElements() {
       section: createMockElement("features-section", ["hidden"]),
       list: createMockElement("features-list"),
     },
+    multiModelDetails: createMockElement("multi-model-details", ["hidden"]),
+    subUrlStatus: createMockElement("sub-url-status"),
+    subUrlPred: createMockElement("sub-url-pred"),
+    subUrlProbs: createMockElement("sub-url-probs"),
+    subMultiStatus: createMockElement("sub-multi-status"),
+    subMultiPred: createMockElement("sub-multi-pred"),
+    subMultiProbs: createMockElement("sub-multi-probs"),
+    subVisStatus: createMockElement("sub-vis-status"),
+    subVisPred: createMockElement("sub-vis-pred"),
+    subVisProbs: createMockElement("sub-vis-probs"),
   };
 }
 
@@ -303,4 +317,281 @@ console.log("Test 10: SHAP Badges Distinguish Risk-Increasing vs Risk-Reducing")
   assert.strictEqual(badge2.textContent, "-0.080 Safe");
 }
 
-console.log("=== All PhishGuard Extension Tests Passed Successfully! ===");
+// ── 11. captureVisibleTabScreenshot: Fallback when chrome API absent ──────
+console.log("Test 11: captureVisibleTabScreenshot - Fallback without chrome API");
+(async () => {
+  const oldChrome = global.chrome;
+  try {
+    delete global.chrome;
+    const result = await popup.captureVisibleTabScreenshot();
+    assert.strictEqual(result, null);
+  } finally {
+    global.chrome = oldChrome;
+  }
+})().then(async () => {
+  // ── 12. captureVisibleTabScreenshot: Handle runtime.lastError / unsupported page
+  console.log("Test 12: captureVisibleTabScreenshot - Gracefully handles runtime.lastError on capture");
+  const oldChrome = global.chrome;
+  try {
+    const mockRuntime = { lastError: null };
+    global.chrome = {
+      runtime: mockRuntime,
+      tabs: {
+        query: (queryInfo, callback) => {
+          assert.strictEqual(queryInfo.active, true);
+          assert.strictEqual(queryInfo.currentWindow, true);
+          callback([{ id: 1, windowId: 42, url: "chrome://extensions" }]);
+        },
+        captureVisibleTab: (windowId, options, callback) => {
+          assert.strictEqual(windowId, 42);
+          mockRuntime.lastError = { message: "Cannot access chrome:// page" };
+          callback(null);
+        },
+      },
+    };
+    const result = await popup.captureVisibleTabScreenshot();
+    assert.strictEqual(result, null);
+  } finally {
+    global.chrome = oldChrome;
+  }
+
+  // ── 13. captureVisibleTabScreenshot: Successful PNG capture with actual tab windowId
+  console.log("Test 13: captureVisibleTabScreenshot - Captures PNG Data URL using active tab windowId");
+  try {
+    let capturedWindowId = null;
+    global.chrome = {
+      runtime: { lastError: null },
+      tabs: {
+        query: (queryInfo, callback) => {
+          assert.strictEqual(queryInfo.active, true);
+          assert.strictEqual(queryInfo.currentWindow, true);
+          callback([{ id: 10, windowId: 789, url: "https://example.com" }]);
+        },
+        captureVisibleTab: (windowId, options, callback) => {
+          capturedWindowId = windowId;
+          assert.strictEqual(options.format, "png");
+          callback("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==");
+        },
+      },
+    };
+    const result = await popup.captureVisibleTabScreenshot();
+    assert.strictEqual(capturedWindowId, 789);
+    assert.strictEqual(typeof result, "string");
+    assert.strictEqual(result.startsWith("data:image/png;base64,"), true);
+  } finally {
+    global.chrome = oldChrome;
+  }
+
+  // ── 14. captureVisibleTabScreenshot: Fallback when tabs.query reports error
+  console.log("Test 14: captureVisibleTabScreenshot - Fallback when tabs.query fails");
+  try {
+    global.chrome = {
+      runtime: { lastError: { message: "Tabs query failed" } },
+      tabs: {
+        query: (queryInfo, callback) => {
+          callback(null);
+        },
+        captureVisibleTab: (windowId, options, callback) => {
+          callback(null);
+        },
+      },
+    };
+    const result = await popup.captureVisibleTabScreenshot();
+    assert.strictEqual(result, null);
+  } finally {
+    global.chrome = oldChrome;
+  }
+
+  // ── 15. Multimodal Full Render ──────────────────────────────
+  console.log("Test 15: Full Render - Multimodal Full (51 Fused Features)");
+  {
+    const els = createMockDOMElements();
+    const data = {
+      url: "https://candidate-site.com",
+      prediction: 0,
+      threat_category: "unverified_candidate",
+      risk_score: 0.055,
+      confidence: 0.945,
+      analysis_status: "completed",
+      model_routing: "multimodal_full",
+      visual_status: "extracted",
+      is_shadow_mode: true,
+      class_probabilities: {
+        unverified_candidate: 0.945,
+        legitimate: 0.945,
+        phishing: 0.055,
+        malware_distribution: 0.0,
+      },
+      url_model_result: {
+        status: "completed",
+        prediction: 0,
+        threat_category: "legitimate",
+        probabilities: { legitimate: 0.92, phishing: 0.07, malware_distribution: 0.01 },
+      },
+      visual_model_result: {
+        status: "completed",
+        prediction: 0,
+        threat_category: "unverified_candidate",
+        probabilities: { unverified_candidate: 0.90, phishing: 0.10 },
+      },
+      multimodal_model_result: {
+        status: "completed",
+        prediction: 0,
+        threat_category: "unverified_candidate",
+        probabilities: { unverified_candidate: 0.945, phishing: 0.055 },
+      },
+    };
+
+    popup.renderResult(data, els);
+
+    assert.strictEqual(els.threatCategoryEl.textContent, "Unverified Candidate");
+    assert.strictEqual(els.statusEl.textContent, "Candidate");
+    assert.strictEqual(els.threatCategoryEl.classList.contains("status-candidate"), true);
+    assert.strictEqual(els.statusEl.classList.contains("status-candidate"), true);
+    assert.strictEqual(els.shield.classList.contains("shield-candidate"), true);
+    assert.strictEqual(els.infoNotice.classList.contains("notice-candidate"), true);
+    assert.strictEqual(els.infoNotice.textContent.includes("NOT been independently verified as safe"), true);
+    assert.strictEqual(els.probEls.legitLabel.textContent, "Candidate");
+    assert.strictEqual(els.modelRoutingEl.textContent, "Multimodal Full (51 Feat)");
+    assert.strictEqual(els.visualStatusEl.textContent, "Captured (30 Feat)");
+    assert.strictEqual(els.shadowAdvisory.classList.contains("hidden"), false);
+
+    // Tri-model breakdown inspection
+    assert.strictEqual(els.multiModelDetails.classList.contains("hidden"), false);
+    assert.strictEqual(els.subUrlStatus.textContent, "Evaluated");
+    assert.strictEqual(els.subUrlPred.textContent, "Legitimate");
+    assert.strictEqual(els.subMultiStatus.textContent, "Primary Arbiter");
+    assert.strictEqual(els.subMultiPred.textContent, "Unverified Candidate");
+    assert.strictEqual(els.subVisStatus.textContent, "Auxiliary");
+    assert.strictEqual(els.subVisPred.textContent, "Unverified Candidate");
+  }
+
+  // ── 16. URL-Only Fallback Render ────────────────────────────
+  console.log("Test 16: Full Render - URL-Only Fallback (Missing Screenshot)");
+  {
+    const els = createMockDOMElements();
+    const data = {
+      url: "https://phish-login.com",
+      prediction: 1,
+      threat_category: "phishing",
+      risk_score: 0.92,
+      confidence: 0.92,
+      analysis_status: "completed",
+      model_routing: "url_model_fallback",
+      visual_status: "not_provided",
+      fallback_reason: "Screenshot not provided; evaluated with standalone URL model.",
+      is_shadow_mode: true,
+      class_probabilities: {
+        legitimate: 0.05,
+        phishing: 0.92,
+        malware_distribution: 0.03,
+      },
+      url_model_result: {
+        status: "completed",
+        prediction: 1,
+        threat_category: "phishing",
+        probabilities: { legitimate: 0.05, phishing: 0.92, malware_distribution: 0.03 },
+      },
+      visual_model_result: { status: "skipped" },
+      multimodal_model_result: { status: "skipped" },
+    };
+
+    popup.renderResult(data, els);
+
+    assert.strictEqual(els.threatCategoryEl.textContent, "Phishing");
+    assert.strictEqual(els.modelRoutingEl.textContent, "URL Fallback (20 Feat)");
+    assert.strictEqual(els.visualStatusEl.textContent, "Not Provided");
+    assert.strictEqual(els.subUrlStatus.textContent, "Evaluated");
+    assert.strictEqual(els.subMultiStatus.textContent, "Skipped");
+  }
+
+  // ── 17. Malware Preemption Render ───────────────────────────
+  console.log("Test 17: Full Render - Malware Preemption (Overridden Multimodal)");
+  {
+    const els = createMockDOMElements();
+    const data = {
+      url: "http://malware-host.net/payload.bin",
+      prediction: 2,
+      threat_category: "malware_distribution",
+      risk_score: 0.98,
+      confidence: 0.95,
+      analysis_status: "completed",
+      model_routing: "url_malware_preempted",
+      visual_status: "extracted",
+      is_shadow_mode: true,
+      class_probabilities: {
+        legitimate: 0.02,
+        phishing: 0.03,
+        malware_distribution: 0.95,
+      },
+      url_model_result: {
+        status: "completed",
+        prediction: 2,
+        threat_category: "malware_distribution",
+        probabilities: { legitimate: 0.02, phishing: 0.03, malware_distribution: 0.95 },
+      },
+      multimodal_model_result: {
+        status: "overridden",
+        reason: "Multimodal classification preempted by URL malware detection.",
+      },
+    };
+
+    popup.renderResult(data, els);
+
+    assert.strictEqual(els.threatCategoryEl.textContent, "Malware");
+    assert.strictEqual(els.modelRoutingEl.textContent, "Malware Preempted");
+    assert.strictEqual(els.infoNotice.textContent.includes("Multimodal classification preempted"), true);
+    assert.strictEqual(els.subMultiStatus.textContent, "Overridden");
+    assert.strictEqual(els.subMultiPred.textContent, "Preempted by Malware Guard");
+  }
+
+  // ── 18. Binary vs 3-Class Mapping Invariant ──────────────────
+  console.log("Test 18: Binary vs 3-Class Mapping Invariant");
+  {
+    // Supplementary mapping helper distinguishes Unverified Candidate vs Legitimate
+    assert.strictEqual(popup.formatSupplementaryCategory(0, "unverified_candidate"), "Unverified Candidate");
+    assert.strictEqual(popup.formatSupplementaryCategory(0, "legitimate"), "Legitimate");
+    assert.strictEqual(popup.formatSupplementaryCategory(1, "phishing"), "Phishing");
+    assert.strictEqual(popup.formatSupplementaryCategory(2, "malware_distribution"), "Malware Distribution");
+
+    // Semantic category label preservation
+    assert.strictEqual(popup.formatCategoryLabel("unverified_candidate"), "Unverified Candidate");
+    assert.strictEqual(popup.formatCategoryLabel("legitimate"), "Legitimate");
+    assert.strictEqual(popup.formatCategoryLabel("phishing"), "Phishing");
+    assert.strictEqual(popup.formatCategoryLabel("malware"), "Malware");
+  }
+
+  // ── 19. Routing and Visual Label Formatters ─────────────────
+  console.log("Test 19: Routing and Visual Status Label Formatters");
+  {
+    assert.strictEqual(popup.formatRoutingLabel("multimodal_full"), "Multimodal Full (51 Feat)");
+    assert.strictEqual(popup.formatRoutingLabel("url_model_fallback"), "URL Fallback (20 Feat)");
+    assert.strictEqual(popup.formatRoutingLabel("url_malware_preempted"), "Malware Preempted");
+    assert.strictEqual(popup.formatRoutingLabel("model_unavailable"), "Model Unavailable");
+
+    assert.strictEqual(popup.formatVisualStatusLabel("extracted"), "Captured (30 Feat)");
+    assert.strictEqual(popup.formatVisualStatusLabel("not_provided"), "Not Provided");
+    assert.strictEqual(popup.formatVisualStatusLabel("capture_failed"), "Capture Failed");
+    assert.strictEqual(popup.formatVisualStatusLabel("invalid_image"), "Invalid Image");
+  }
+
+  // ── 20. Shadow Mode Invariant in Extension ──────────────────
+  console.log("Test 20: Shadow-Mode Non-Blocking Invariants");
+  {
+    const fs = require("fs");
+    const path = require("path");
+    const popupJsSource = fs.readFileSync(path.join(__dirname, "../extension/popup.js"), "utf8");
+
+    // Must NOT contain webRequest, declarativeNetRequest, tab removal, or redirects
+    assert.strictEqual(popupJsSource.includes("chrome.webRequest"), false);
+    assert.strictEqual(popupJsSource.includes("chrome.declarativeNetRequest"), false);
+    assert.strictEqual(popupJsSource.includes("chrome.tabs.remove"), false);
+    assert.strictEqual(popupJsSource.includes("window.location.replace"), false);
+    assert.strictEqual(popupJsSource.includes("window.location.href ="), false);
+  }
+
+  console.log("=== All PhishGuard Extension Tests Passed Successfully! ===");
+}).catch((err) => {
+  console.error("Test failed:", err);
+  process.exit(1);
+});

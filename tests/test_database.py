@@ -77,6 +77,8 @@ class TestDatabaseSchema:
             "risk_score",
             "analysis_status",
             "analyzed_at",
+            "visual_status",
+            "visual_features",
         }
         assert expected_columns.issubset(columns.keys())
 
@@ -149,6 +151,34 @@ class TestCreateAnalysis:
         assert record.analyzed_at.year == 2025
         assert record.analyzed_at.month == 1
         assert record.analyzed_at.day == 1
+
+    def test_create_record_with_visual_features(self, db_session):
+        visual_data = {
+            "width": 1280,
+            "height": 720,
+            "aspect_ratio": 1.7778,
+            "mean_brightness": 128.5,
+            "dominant_color_b": 240.0,
+        }
+        record = create_analysis(
+            db_session,
+            url="https://example.com/visual",
+            prediction=0,
+            threat_category="legitimate",
+            risk_score=0.01,
+            visual_status="extracted",
+            visual_features=visual_data,
+        )
+        assert record.id is not None
+        assert record.visual_status == "extracted"
+        assert record.visual_features == visual_data
+        assert record.visual_features["width"] == 1280
+
+        # Retrieve again to verify persistence
+        fetched = get_analysis_by_id(db_session, record.id)
+        assert fetched is not None
+        assert fetched.visual_status == "extracted"
+        assert fetched.visual_features["aspect_ratio"] == 1.7778
 
 
 # ── 3. CRUD: Get Analysis Record ───────────────────────────────
@@ -494,5 +524,58 @@ class TestDatabaseMigrations:
         added = migrate_db(engine)
         assert added == []
         engine.dispose()
+
+    def test_migration_adds_visual_columns_preserving_records(self, tmp_path):
+        """Verify migration detects missing visual_status and visual_features columns, adds them, and preserves data."""
+        import sqlite3
+
+        db_path = str(tmp_path / "legacy_analysis.db")
+        con = sqlite3.connect(db_path)
+        # Create legacy table without visual columns
+        con.execute(
+            """CREATE TABLE analysis (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                url VARCHAR NOT NULL,
+                prediction INTEGER,
+                risk_score FLOAT,
+                analysis_status VARCHAR NOT NULL,
+                analyzed_at DATETIME NOT NULL,
+                threat_category VARCHAR,
+                class_probabilities JSON,
+                top_features JSON,
+                explanation JSON
+            );"""
+        )
+        con.execute(
+            """INSERT INTO analysis (url, prediction, threat_category, risk_score, analysis_status, analyzed_at)
+               VALUES ('https://legacy-site.org', 0, 'legitimate', 0.05, 'completed', '2025-01-01 12:00:00');"""
+        )
+        con.commit()
+        con.close()
+
+        # Run migration via init_db
+        engine = init_db(db_path=db_path)
+        try:
+            # Verify columns exist
+            inspector = inspect(engine)
+            cols = {c["name"] for c in inspector.get_columns("analysis")}
+            assert "visual_status" in cols
+            assert "visual_features" in cols
+
+            # Verify legacy record was preserved with default visual_status
+            TestingSession = sessionmaker(bind=engine)
+            session = TestingSession()
+            try:
+                rec = session.query(Analysis).filter_by(url="https://legacy-site.org").first()
+                assert rec is not None
+                assert rec.prediction == 0
+                assert rec.threat_category == "legitimate"
+                assert rec.visual_status == "not_provided"
+                assert rec.visual_features is None
+            finally:
+                session.close()
+        finally:
+            engine.dispose()
+
 
 

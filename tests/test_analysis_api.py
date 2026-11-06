@@ -665,6 +665,378 @@ class TestWikipediaAndLegitimateURLRegression:
         assert mdata["risk_score"] > 0.90
 
 
+# ── 15. Webpage Screenshot Capture & Visual Feature Extraction ──
+
+class TestScreenshotAnalysisAPI:
+    """Tests for user-triggered screenshot ingestion and visual feature extraction."""
+
+    @staticmethod
+    def _create_sample_png_bytes(width: int = 80, height: int = 60) -> bytes:
+        """Create a synthetic PNG image with varied colors and shapes."""
+        import cv2
+        img = np.zeros((height, width, 3), dtype=np.uint8)
+        # Fill regions with colors
+        img[: height // 2, : width // 2] = [255, 0, 0]  # Blue
+        img[height // 2 :, : width // 2] = [0, 255, 0]  # Green
+        img[: height // 2, width // 2 :] = [0, 0, 255]  # Red
+        img[height // 2 :, width // 2 :] = [255, 255, 255]  # White
+        success, encoded = cv2.imencode(".png", img)
+        assert success, "Failed to encode test PNG image"
+        return encoded.tobytes()
+
+    @pytest.mark.anyio
+    async def test_valid_screenshot_png_payload(self, client):
+        """Verify valid PNG base64 extracts all 30 visual features and preserves URL prediction."""
+        import base64
+        from ml.features.visual_features import VISUAL_FEATURE_NAMES
+
+        png_bytes = self._create_sample_png_bytes(80, 60)
+        b64_str = base64.b64encode(png_bytes).decode("ascii")
+
+        resp = await client.post(
+            "/analyze",
+            json={
+                "url": "https://www.wikipedia.org/",
+                "screenshot_base64": b64_str,
+            },
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+
+        # Non-phishing multimodal classification (unverified candidate)
+        assert data["analysis_status"] == "completed"
+        assert data["prediction"] == 0
+        assert data["threat_category"] == "unverified_candidate"
+        assert data["risk_score"] < 0.30
+
+        # Visual feature extraction
+        assert data["visual_status"] == "extracted"
+        assert isinstance(data["visual_features"], dict)
+        assert len(data["visual_features"]) == len(VISUAL_FEATURE_NAMES)
+        assert data["visual_features"]["width"] == 80
+        assert data["visual_features"]["height"] == 60
+        assert data["visual_features"]["aspect_ratio"] == round(80 / 60, 4)
+        assert "mean_brightness" in data["visual_features"]
+        assert "image_entropy" in data["visual_features"]
+        assert "dominant_color_b" in data["visual_features"]
+        assert "Visual features extracted successfully" in (data.get("visual_message") or "")
+
+    @pytest.mark.anyio
+    async def test_valid_screenshot_data_url_payload(self, client):
+        """Verify data:image/png;base64,... Data URL format is accepted and processed."""
+        import base64
+
+        png_bytes = self._create_sample_png_bytes(100, 50)
+        b64_str = base64.b64encode(png_bytes).decode("ascii")
+        data_url = f"data:image/png;base64,{b64_str}"
+
+        resp = await client.post(
+            "/analyze",
+            json={
+                "url": "https://www.google.com/",
+                "screenshot_base64": data_url,
+            },
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["visual_status"] == "extracted"
+        assert data["visual_features"]["width"] == 100
+        assert data["visual_features"]["height"] == 50
+
+    @pytest.mark.anyio
+    async def test_valid_screenshot_jpeg_data_url_payload(self, client):
+        """Verify JPEG Data URL format is accepted and processed."""
+        import base64
+        import cv2
+
+        img = np.ones((70, 90, 3), dtype=np.uint8) * 128
+        _, encoded = cv2.imencode(".jpg", img)
+        b64_str = base64.b64encode(encoded.tobytes()).decode("ascii")
+        data_url = f"data:image/jpeg;base64,{b64_str}"
+
+        resp = await client.post(
+            "/analyze",
+            json={
+                "url": "https://www.microsoft.com/",
+                "screenshot_base64": data_url,
+            },
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["visual_status"] == "extracted"
+        assert data["visual_features"]["width"] == 90
+        assert data["visual_features"]["height"] == 70
+
+    @pytest.mark.anyio
+    async def test_request_omitting_screenshot_field(self, client):
+        """Verify requests without screenshot return not_provided without error."""
+        resp = await client.post(
+            "/analyze",
+            json={"url": "https://www.wikipedia.org/"},
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["visual_status"] == "not_provided"
+        assert data["visual_features"] is None
+        assert data["visual_message"] is None
+        assert data["prediction"] == 0
+
+    @pytest.mark.anyio
+    async def test_request_with_explicit_null_screenshot(self, client):
+        """Verify requests with screenshot_base64: null return not_provided."""
+        resp = await client.post(
+            "/analyze",
+            json={"url": "https://www.wikipedia.org/", "screenshot_base64": None},
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["visual_status"] == "not_provided"
+        assert data["visual_features"] is None
+
+    @pytest.mark.anyio
+    async def test_rejects_empty_screenshot_string(self, client):
+        """Verify empty string screenshot payload returns 422."""
+        resp = await client.post(
+            "/analyze",
+            json={"url": "https://www.wikipedia.org/", "screenshot_base64": ""},
+        )
+        assert resp.status_code == 422
+        errors = resp.json().get("detail", [])
+        assert any("empty" in str(err).lower() for err in errors)
+
+    @pytest.mark.anyio
+    async def test_rejects_whitespace_screenshot_string(self, client):
+        """Verify whitespace string screenshot payload returns 422."""
+        resp = await client.post(
+            "/analyze",
+            json={"url": "https://www.wikipedia.org/", "screenshot_base64": "   \n\t  "},
+        )
+        assert resp.status_code == 422
+
+    @pytest.mark.anyio
+    async def test_rejects_invalid_base64_payload(self, client):
+        """Verify non-base64 characters return 422."""
+        resp = await client.post(
+            "/analyze",
+            json={
+                "url": "https://www.wikipedia.org/",
+                "screenshot_base64": "Not-Valid-Base64!@#$%",
+            },
+        )
+        assert resp.status_code == 422
+
+    @pytest.mark.anyio
+    async def test_rejects_non_image_base64_payload(self, client):
+        """Verify valid base64 containing plain text (not an image) returns 422."""
+        import base64
+
+        plain_text_b64 = base64.b64encode(b"This is a text string, not an image.").decode("ascii")
+        resp = await client.post(
+            "/analyze",
+            json={
+                "url": "https://www.wikipedia.org/",
+                "screenshot_base64": plain_text_b64,
+            },
+        )
+        assert resp.status_code == 422
+        errors = resp.json().get("detail", [])
+        assert any("image" in str(err).lower() for err in errors)
+
+    @pytest.mark.anyio
+    async def test_rejects_non_image_data_url_mime_type(self, client):
+        """Verify non-image MIME types in Data URL return 422."""
+        import base64
+
+        b64 = base64.b64encode(b"PDF dummy content").decode("ascii")
+        resp = await client.post(
+            "/analyze",
+            json={
+                "url": "https://www.wikipedia.org/",
+                "screenshot_base64": f"data:application/pdf;base64,{b64}",
+            },
+        )
+        assert resp.status_code == 422
+
+    @pytest.mark.anyio
+    async def test_rejects_data_url_without_base64_specifier(self, client):
+        """Verify Data URL missing ';base64,' returns 422."""
+        resp = await client.post(
+            "/analyze",
+            json={
+                "url": "https://www.wikipedia.org/",
+                "screenshot_base64": "data:image/png,plainrawcontent",
+            },
+        )
+        assert resp.status_code == 422
+
+    @pytest.mark.anyio
+    async def test_rejects_oversized_base64_payload(self, client):
+        """Verify base64 payload exceeding 15MB limit returns 422."""
+        # 15 MB + 100 bytes of base64
+        oversized = "A" * (15 * 1024 * 1024 + 100)
+        resp = await client.post(
+            "/analyze",
+            json={
+                "url": "https://www.wikipedia.org/",
+                "screenshot_base64": oversized,
+            },
+        )
+        assert resp.status_code == 422
+        errors = resp.json().get("detail", [])
+        assert any("exceeds" in str(err).lower() or "maximum" in str(err).lower() for err in errors)
+
+    @pytest.mark.anyio
+    async def test_model_unavailable_handles_screenshot_gracefully(
+        self, client, monkeypatch, tmp_path
+    ):
+        """Verify model_unavailable mode still extracts visual features cleanly."""
+        import base64
+
+        monkeypatch.setenv("PHISHGUARD_MODEL_PATH", str(tmp_path / "nonexistent_model.joblib"))
+        png_bytes = self._create_sample_png_bytes(64, 64)
+        b64_str = base64.b64encode(png_bytes).decode("ascii")
+
+        resp = await client.post(
+            "/analyze",
+            json={
+                "url": "https://www.wikipedia.org/",
+                "screenshot_base64": b64_str,
+            },
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["analysis_status"] == "model_unavailable"
+        assert data["prediction"] is None
+        assert data["threat_category"] is None
+        assert data["visual_status"] == "extracted"
+        assert data["visual_features"]["width"] == 64
+        assert data["visual_features"]["height"] == 64
+
+    @pytest.mark.anyio
+    async def test_screenshot_does_not_mutate_url_prediction(self, client):
+        """Verify phishing fixture prediction is identical with and without screenshot."""
+        import base64
+
+        phish_url = "https://secure-paypal-login.account-verification.tk/login.php"
+
+        # 1. Without screenshot
+        resp1 = await client.post("/analyze", json={"url": phish_url})
+        assert resp1.status_code == 200
+        data1 = resp1.json()
+
+        # 2. With screenshot
+        png_bytes = self._create_sample_png_bytes(100, 100)
+        b64_str = base64.b64encode(png_bytes).decode("ascii")
+        resp2 = await client.post(
+            "/analyze",
+            json={"url": phish_url, "screenshot_base64": b64_str},
+        )
+        assert resp2.status_code == 200
+        data2 = resp2.json()
+
+        # Both predictions must classify as phishing threat
+        assert data1["prediction"] == data2["prediction"] == 1
+        assert data1["threat_category"] == data2["threat_category"] == "phishing"
+        assert data1["risk_score"] >= 0.85
+        assert data2["risk_score"] >= 0.85
+        assert data1["model_routing"] == "url_model_fallback"
+        assert data2["model_routing"] == "multimodal_full"
+
+    @pytest.mark.anyio
+    async def test_post_and_subsequent_get_analyses_persists_visual_features(self, client):
+        """Verify that visual_status and all 30 visual features are persisted and returned by GET /analyses."""
+        import base64
+        from ml.features.visual_features import VISUAL_FEATURE_NAMES
+
+        png_bytes = self._create_sample_png_bytes(120, 80)
+        b64_str = base64.b64encode(png_bytes).decode("ascii")
+
+        # 1. POST /analyze with valid screenshot
+        post_resp = await client.post(
+            "/analyze",
+            json={
+                "url": "https://www.wikipedia.org/",
+                "screenshot_base64": b64_str,
+            },
+        )
+        assert post_resp.status_code == 200
+        post_data = post_resp.json()
+        analysis_id = post_data["id"]
+        assert post_data["visual_status"] == "extracted"
+        assert post_data["visual_features"]["width"] == 120
+        assert post_data["visual_features"]["height"] == 80
+
+        # 2. GET /analyses - verify persisted record in list
+        list_resp = await client.get("/analyses?limit=10")
+        assert list_resp.status_code == 200
+        records = list_resp.json()
+        target_rec = next((r for r in records if r["id"] == analysis_id), None)
+        assert target_rec is not None, f"Record with id {analysis_id} not found in GET /analyses"
+        assert target_rec["visual_status"] == "extracted"
+        assert isinstance(target_rec["visual_features"], dict)
+        assert len(target_rec["visual_features"]) == len(VISUAL_FEATURE_NAMES)
+        assert target_rec["visual_features"]["width"] == 120
+        assert target_rec["visual_features"]["height"] == 80
+
+        # 3. GET /analyses/{id} - verify persisted record by ID
+        get_resp = await client.get(f"/analyses/{analysis_id}")
+        assert get_resp.status_code == 200
+        single_data = get_resp.json()
+        assert single_data["visual_status"] == "extracted"
+        assert single_data["visual_features"]["width"] == 120
+        assert single_data["visual_features"]["height"] == 80
+
+    @pytest.mark.anyio
+    async def test_get_analyses_url_only_record_has_not_provided_status(self, client):
+        """Verify that analysis performed without screenshot persists visual_status as not_provided."""
+        post_resp = await client.post(
+            "/analyze",
+            json={"url": "https://www.google.com/"},
+        )
+        assert post_resp.status_code == 200
+        analysis_id = post_resp.json()["id"]
+
+        get_resp = await client.get(f"/analyses/{analysis_id}")
+        assert get_resp.status_code == 200
+        data = get_resp.json()
+        assert data["visual_status"] == "not_provided"
+        assert data["visual_features"] is None
+
+    @pytest.mark.anyio
+    async def test_raw_screenshot_is_never_persisted_in_db(self, client, app_with_temp_db):
+        """Verify that neither base64 payload nor raw image bytes are stored in SQLite."""
+        import base64
+        import sqlite3
+
+        png_bytes = self._create_sample_png_bytes(60, 60)
+        unique_token = "UNIQUE_PAYLOAD_TEST_STRING_ABCD"
+        b64_str = base64.b64encode(png_bytes).decode("ascii")
+
+        post_resp = await client.post(
+            "/analyze",
+            json={
+                "url": "https://www.microsoft.com/",
+                "screenshot_base64": f"data:image/png;base64,{b64_str}",
+            },
+        )
+        assert post_resp.status_code == 200
+
+        # Query raw SQLite file directly
+        db_file = app_with_temp_db
+        conn = sqlite3.connect(db_file)
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM analysis")
+        rows = cursor.fetchall()
+        for row in rows:
+            for val in row:
+                if isinstance(val, (str, bytes)):
+                    val_str = str(val)
+                    # Verify no raw screenshot base64 was saved
+                    assert b64_str not in val_str
+                    assert "data:image" not in val_str
+        conn.close()
+
+
 
 
 

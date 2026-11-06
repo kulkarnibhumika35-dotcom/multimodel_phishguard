@@ -15,7 +15,7 @@
       <span id="brand-shield" class="shield">&#x1F6E1;</span>
       <h1>PhishGuard</h1>
     </div>
-    <p class="tagline">AI-Powered Threat Detection</p>
+    <p class="tagline">Multimodal AI Threat Detection</p>
   </header>
 
   <!-- URL Display -->
@@ -30,7 +30,7 @@
   <!-- Loading Indicator -->
   <div id="loading" class="loading hidden">
     <span class="spinner"></span>
-    <span>Analyzing with PhishGuard AI…</span>
+    <span id="loading-text">Analyzing with PhishGuard AI…</span>
   </div>
 
   <!-- Error Message -->
@@ -62,14 +62,32 @@
       </div>
     </div>
 
+    <!-- Pipeline & Routing Metadata -->
+    <div class="meta-grid">
+      <div class="meta-card">
+        <span class="meta-label">Routing Mode</span>
+        <span id="model-routing" class="meta-value">—</span>
+      </div>
+      <div class="meta-card">
+        <span class="meta-label">Visual Status</span>
+        <span id="visual-status" class="meta-value">—</span>
+      </div>
+    </div>
+
     <!-- Status Notice / Recommendation Banner -->
     <div id="info-notice" class="info-notice hidden"></div>
 
-    <!-- Category Probabilities Breakdown -->
+    <!-- Shadow-Mode Advisory Notice -->
+    <div id="shadow-advisory" class="shadow-advisory">
+      <span class="shadow-icon">&#x2139;</span>
+      <span id="shadow-text">Shadow Mode: Informational analysis only. Browsing is not blocked.</span>
+    </div>
+
+    <!-- Category Probabilities Breakdown (3-Class Unified System) -->
     <div id="probabilities-section" class="probabilities-section hidden">
       <span class="section-subtitle">Category Probabilities</span>
       <div class="prob-row">
-        <span class="prob-name">Legitimate</span>
+        <span id="prob-legit-label" class="prob-name">Legitimate</span>
         <div class="prob-track">
           <div id="prob-legit-bar" class="prob-bar legit-bar" style="width: 0%"></div>
         </div>
@@ -96,11 +114,56 @@
       <span class="section-subtitle">Top Contributing Indicators (SHAP)</span>
       <div id="features-list" class="features-list"></div>
     </div>
+
+    <!-- Tri-Model Telemetry Breakdown (Collapsible Diagnostic) -->
+    <details id="multi-model-details" class="multi-model-details hidden">
+      <summary class="details-summary">Tri-Model Inspection (Diagnostic)</summary>
+      <div class="sub-models-list">
+        <!-- URL Model -->
+        <div class="sub-model-card">
+          <div class="sub-model-header">
+            <span class="sub-model-name">URL Model (20 Lexical Feats)</span>
+            <span id="sub-url-status" class="sub-badge sub-badge-neutral">—</span>
+          </div>
+          <div class="sub-model-row">
+            <span>Prediction:</span>
+            <strong id="sub-url-pred">—</strong>
+          </div>
+          <div id="sub-url-probs" class="sub-probs-line"></div>
+        </div>
+
+        <!-- Multimodal Model -->
+        <div class="sub-model-card">
+          <div class="sub-model-header">
+            <span class="sub-model-name">Multimodal Model (51 Fused Feats)</span>
+            <span id="sub-multi-status" class="sub-badge sub-badge-neutral">—</span>
+          </div>
+          <div class="sub-model-row">
+            <span>Prediction:</span>
+            <strong id="sub-multi-pred">—</strong>
+          </div>
+          <div id="sub-multi-probs" class="sub-probs-line"></div>
+        </div>
+
+        <!-- Visual Model -->
+        <div class="sub-model-card">
+          <div class="sub-model-header">
+            <span class="sub-model-name">Visual Model (30 Screenshot Feats)</span>
+            <span id="sub-vis-status" class="sub-badge sub-badge-neutral">—</span>
+          </div>
+          <div class="sub-model-row">
+            <span>Prediction:</span>
+            <strong id="sub-vis-pred">—</strong>
+          </div>
+          <div id="sub-vis-probs" class="sub-probs-line"></div>
+        </div>
+      </div>
+    </details>
   </section>
 
   <!-- Footer -->
   <footer class="footer">
-    PhishGuard v1.0 &mdash; Stay Safe Online
+    PhishGuard v1.1 &mdash; Multimodal AI Protection (Shadow Mode)
   </footer>
 
   <script src="popup.js"></script>

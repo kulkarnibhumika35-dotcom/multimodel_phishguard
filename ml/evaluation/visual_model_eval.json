@@ -1,0 +1,129 @@
+{
+  "metadata": {
+    "execution_timestamp": "2026-11-05T17:15:48.662904+00:00",
+    "model_type": "RandomForestClassifier",
+    "feature_domain": "visual_screenshots",
+    "features_count": 30,
+    "random_state": 42,
+    "n_estimators": 100,
+    "limitation_notice": "CRITICAL LIMITATION: Legitimate class consists of Tranco candidates ('unverified_candidate') rather than manually verified benign ground truth. The visual classifier cannot be claimed as fully validated or deployed as a standalone production oracle without human/hybrid corroboration."
+  },
+  "dataset_split": {
+    "train_samples_count": 1190,
+    "test_samples_count": 296,
+    "train_class_counts": {
+      "phishing": 550,
+      "unverified_candidate": 640
+    },
+    "test_class_counts": {
+      "phishing": 137,
+      "unverified_candidate": 159
+    },
+    "domain_leakage_count": 0
+  },
+  "cross_validation_train_5fold": {
+    "f1_scores": [
+      0.7596,
+      0.7407,
+      0.7,
+      0.7805,
+      0.6857
+    ],
+    "f1_mean": 0.7333,
+    "f1_std": 0.0356,
+    "accuracy_scores": [
+      0.7899,
+      0.7647,
+      0.7479,
+      0.8109,
+      0.7227
+    ],
+    "accuracy_mean": 0.7672,
+    "accuracy_std": 0.0309
+  },
+  "test_metrics": {
+    "accuracy": 0.8007,
+    "precision": 0.8095,
+    "recall": 0.7445,
+    "f1_score": 0.7757,
+    "macro_precision": 0.8018,
+    "macro_recall": 0.7968,
+    "macro_f1": 0.7982,
+    "roc_auc": 0.8491,
+    "confusion_matrix": {
+      "true_negative_candidate": 135,
+      "false_positive_candidate_as_phish": 24,
+      "false_negative_phish_as_candidate": 35,
+      "true_positive_phish": 102
+    },
+    "classification_report": {
+      "unverified_candidate": {
+        "precision": 0.7941176470588235,
+        "recall": 0.8490566037735849,
+        "f1-score": 0.8206686930091185,
+        "support": 159.0
+      },
+      "phishing": {
+        "precision": 0.8095238095238095,
+        "recall": 0.7445255474452555,
+        "f1-score": 0.7756653992395437,
+        "support": 137.0
+      },
+      "accuracy": 0.8006756756756757,
+      "macro avg": {
+        "precision": 0.8018207282913166,
+        "recall": 0.7967910756094202,
+        "f1-score": 0.7981670461243311,
+        "support": 296.0
+      },
+      "weighted avg": {
+        "precision": 0.8012482019834961,
+        "recall": 0.8006756756756757,
+        "f1-score": 0.7998394658252275,
+        "support": 296.0
+      }
+    }
+  },
+  "top_10_feature_importances": [
+    {
+      "feature": "std_brightness",
+      "importance": 0.07741
+    },
+    {
+      "feature": "std_blue",
+      "importance": 0.06962
+    },
+    {
+      "feature": "color_variance",
+      "importance": 0.06934
+    },
+    {
+      "feature": "std_green",
+      "importance": 0.06157
+    },
+    {
+      "feature": "image_entropy",
+      "importance": 0.06147
+    },
+    {
+      "feature": "std_red",
+      "importance": 0.05612
+    },
+    {
+      "feature": "edge_density",
+      "importance": 0.04719
+    },
+    {
+      "feature": "dominant_color_3_proportion",
+      "importance": 0.0441
+    },
+    {
+      "feature": "dominant_color_1_g",
+      "importance": 0.03256
+    },
+    {
+      "feature": "dominant_color_2_r",
+      "importance": 0.03193
+    }
+  ]
+}

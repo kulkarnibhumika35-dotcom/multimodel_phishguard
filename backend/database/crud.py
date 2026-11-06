@@ -20,8 +20,10 @@ def create_analysis(
     class_probabilities: dict[str, float] | None = None,
     top_features: list[dict[str, Any]] | None = None,
     explanation: dict[str, Any] | None = None,
+    visual_status: str | None = "not_provided",
+    visual_features: dict[str, Any] | None = None,
 ) -> Analysis:
-    """Create and persist a new Analysis record with probabilities and explainability."""
+    """Create and persist a new Analysis record with probabilities, explainability, and visual extraction."""
     record = Analysis(
         url=url,
         prediction=prediction,
@@ -32,6 +34,8 @@ def create_analysis(
         explanation=explanation,
         analysis_status=analysis_status,
         analyzed_at=analyzed_at or datetime.now(timezone.utc),
+        visual_status=visual_status or "not_provided",
+        visual_features=visual_features,
     )
     db.add(record)
     db.commit()

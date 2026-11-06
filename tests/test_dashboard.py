@@ -14,13 +14,21 @@ import requests
 
 from dashboard.app import (
     _format_category,
+    _format_routing_label,
     _format_timestamp,
+    _format_visual_status_label,
     _prediction_label,
     _risk_display,
     _threat_category_label,
     analyze_new_url,
     compute_statistics,
     filter_records,
+    prepare_daily_activity,
+    prepare_four_class_distribution,
+    prepare_model_disagreement_statistics,
+    prepare_model_routing_distribution,
+    prepare_risk_score_distribution,
+    prepare_screenshot_availability,
     records_to_dataframe,
     validate_url_input,
 )
@@ -137,6 +145,93 @@ def three_class_records() -> list[dict]:
     ]
 
 
+@pytest.fixture
+def four_class_records() -> list[dict]:
+    """A comprehensive 4-class dataset with multimodal and fallback telemetry."""
+    return [
+        {
+            "id": 1,
+            "url": "https://www.google.com",
+            "prediction": 0,
+            "threat_category": "legitimate",
+            "risk_score": 0.04,
+            "analysis_status": "completed",
+            "model_routing": "url_model_fallback",
+            "visual_status": "not_provided",
+            "is_shadow_mode": True,
+            "class_probabilities": {"legitimate": 0.96, "phishing": 0.03, "malware_distribution": 0.01},
+            "analyzed_at": "2026-11-04T10:00:00",
+        },
+        {
+            "id": 2,
+            "url": "https://candidate-domain.org",
+            "prediction": 0,
+            "threat_category": "unverified_candidate",
+            "risk_score": 0.06,
+            "analysis_status": "completed",
+            "model_routing": "multimodal_full",
+            "visual_status": "extracted",
+            "is_shadow_mode": True,
+            "class_probabilities": {
+                "unverified_candidate": 0.94,
+                "legitimate": 0.94,
+                "phishing": 0.06,
+                "malware_distribution": 0.0,
+            },
+            "url_model_result": {"status": "completed", "prediction": 0, "threat_category": "legitimate"},
+            "multimodal_model_result": {"status": "completed", "prediction": 0, "threat_category": "unverified_candidate"},
+            "analyzed_at": "2026-11-04T11:00:00",
+        },
+        {
+            "id": 3,
+            "url": "https://phishing-scam.xyz/login",
+            "prediction": 1,
+            "threat_category": "phishing",
+            "risk_score": 0.92,
+            "analysis_status": "completed",
+            "model_routing": "multimodal_full",
+            "visual_status": "extracted",
+            "is_shadow_mode": True,
+            "class_probabilities": {
+                "unverified_candidate": 0.08,
+                "legitimate": 0.08,
+                "phishing": 0.92,
+                "malware_distribution": 0.0,
+            },
+            "url_model_result": {"status": "completed", "prediction": 1, "threat_category": "phishing"},
+            "multimodal_model_result": {"status": "completed", "prediction": 1, "threat_category": "phishing"},
+            "analyzed_at": "2026-11-04T12:00:00",
+        },
+        {
+            "id": 4,
+            "url": "http://192.168.1.1/malware.exe",
+            "prediction": 2,
+            "threat_category": "malware_distribution",
+            "risk_score": 0.99,
+            "analysis_status": "completed",
+            "model_routing": "url_malware_preempted",
+            "visual_status": "extracted",
+            "is_shadow_mode": True,
+            "class_probabilities": {"legitimate": 0.01, "phishing": 0.02, "malware_distribution": 0.97},
+            "url_model_result": {"status": "completed", "prediction": 2, "threat_category": "malware_distribution"},
+            "multimodal_model_result": {"status": "overridden", "reason": "Preempted by Malware Guard"},
+            "analyzed_at": "2026-11-04T13:00:00",
+        },
+        {
+            "id": 5,
+            "url": "https://unavailable-model.com",
+            "prediction": None,
+            "threat_category": None,
+            "risk_score": None,
+            "analysis_status": "model_unavailable",
+            "model_routing": "model_unavailable",
+            "visual_status": "not_provided",
+            "is_shadow_mode": True,
+            "analyzed_at": "2026-11-04T14:00:00",
+        },
+    ]
+
+
 # ── Tests: compute_statistics ───────────────────────────────────────
 
 class TestComputeStatistics:
@@ -176,10 +271,48 @@ class TestComputeStatistics:
             "total": 0,
             "phishing": 0,
             "legitimate": 0,
+            "unverified_candidate": 0,
             "malware": 0,
             "unavailable": 0,
             "threat_total": 0,
+            "avg_risk_score": 0.0,
+            "screenshot_success_rate": 0.0,
+            "multimodal_count": 0,
+            "url_fallback_count": 0,
         }
+
+    def test_four_class_statistics(self, four_class_records: list[dict]):
+        stats = compute_statistics(four_class_records)
+        assert stats["total"] == 5
+        assert stats["legitimate"] == 1
+        assert stats["unverified_candidate"] == 1
+        assert stats["phishing"] == 1
+        assert stats["malware"] == 1
+        assert stats["unavailable"] == 1
+        assert stats["threat_total"] == 2  # Phishing (1) + Malware (1)
+
+    def test_unverified_candidate_never_counted_as_legitimate(self):
+        records = [
+            {"prediction": 0, "threat_category": "unverified_candidate", "analysis_status": "completed", "model_routing": "multimodal_full"},
+            {"prediction": 0, "threat_category": "unverified_candidate", "analysis_status": "completed", "model_routing": "multimodal_full"},
+            {"prediction": 0, "threat_category": "candidate", "analysis_status": "completed", "model_routing": "multimodal_full"},
+        ]
+        stats = compute_statistics(records)
+        assert stats["total"] == 3
+        assert stats["unverified_candidate"] == 3
+        assert stats["legitimate"] == 0  # CRITICAL: strictly 0!
+        assert stats["phishing"] == 0
+        assert stats["malware"] == 0
+
+    def test_pipeline_metrics_averages_and_rates(self, four_class_records: list[dict]):
+        stats = compute_statistics(four_class_records)
+        # 4 completed records with risk scores: 0.04, 0.06, 0.92, 0.99 -> avg = 0.5025
+        assert 0.50 <= stats["avg_risk_score"] <= 0.51
+        # 3 of 5 records have visual_status = "extracted" -> 60.0%
+        assert stats["screenshot_success_rate"] == 60.0
+        # 2 multimodal records, 2 fallback/preempted records
+        assert stats["multimodal_count"] == 2
+        assert stats["url_fallback_count"] == 2
 
     def test_three_class_statistics(self, three_class_records: list[dict]):
         stats = compute_statistics(three_class_records)
@@ -289,6 +422,18 @@ class TestPredictionLabel:
         assert "Malware" in _prediction_label(None, "completed", threat_category="malware_distribution")
         assert "Phishing" in _prediction_label(None, "completed", threat_category="phishing")
         assert "Legitimate" in _prediction_label(None, "completed", threat_category="legitimate")
+        assert "Unverified Candidate" in _prediction_label(None, "completed", threat_category="unverified_candidate")
+
+    def test_unverified_candidate_label(self):
+        label = _prediction_label(0, "completed", threat_category="unverified_candidate")
+        assert "Unverified Candidate" in label
+        assert "Legitimate" not in label
+        assert "Phishing" not in label
+
+    def test_unverified_candidate_with_multimodal_routing(self):
+        label = _prediction_label(0, "completed", routing="multimodal_full")
+        assert "Unverified Candidate" in label
+        assert "Legitimate" not in label
 
 
 # ── Tests: _threat_category_label ───────────────────────────────────
@@ -296,11 +441,15 @@ class TestPredictionLabel:
 class TestThreatCategoryLabel:
     def test_categories(self):
         assert _threat_category_label("legitimate") == "Legitimate"
+        assert _threat_category_label("unverified_candidate") == "Unverified Candidate"
+        assert _threat_category_label("candidate") == "Unverified Candidate"
         assert _threat_category_label("phishing") == "Phishing"
         assert _threat_category_label("malware_distribution") == "Malware Distribution"
         assert _threat_category_label("malware") == "Malware Distribution"
         assert _threat_category_label(None, status="model_unavailable") == "Unavailable"
         assert _threat_category_label(None, prediction=2) == "Malware Distribution"
+        assert _threat_category_label(None, prediction=0, routing="multimodal_full") == "Unverified Candidate"
+        assert _threat_category_label(None, prediction=0, routing="url_model_fallback") == "Legitimate"
 
 
 # ── Tests: _risk_display ────────────────────────────────────────────
@@ -361,6 +510,22 @@ class TestFilterRecords:
         assert len(results) == 1
         assert results[0]["threat_category"] == "malware_distribution"
 
+    def test_filter_by_category_unverified_candidate(self, four_class_records: list[dict]):
+        results = filter_records(four_class_records, category="Unverified Candidate")
+        assert len(results) == 1
+        assert results[0]["threat_category"] == "unverified_candidate"
+
+    def test_filter_by_routing_multimodal(self, four_class_records: list[dict]):
+        results = filter_records(four_class_records, routing="multimodal_full")
+        assert len(results) == 2
+        for r in results:
+            assert r["model_routing"] == "multimodal_full"
+
+    def test_filter_by_routing_fallback(self, four_class_records: list[dict]):
+        results = filter_records(four_class_records, routing="url_model_fallback")
+        assert len(results) == 1
+        assert results[0]["url"] == "https://www.google.com"
+
     def test_filter_by_status(self, three_class_records: list[dict]):
         results = filter_records(three_class_records, status="model_unavailable")
         assert len(results) == 1
@@ -388,8 +553,39 @@ class TestRecordsToDataFrame:
 
     def test_correct_columns(self, mixed_records: list[dict]):
         df = records_to_dataframe(mixed_records)
-        expected_cols = {"ID", "URL", "Prediction", "Threat Category", "Risk Score", "Status", "Analyzed At"}
+        expected_cols = {
+            "ID",
+            "URL",
+            "Prediction",
+            "Threat Category",
+            "Risk Score",
+            "Model Routing",
+            "Screenshot Status",
+            "Shadow Mode",
+            "Status",
+            "Analyzed At",
+        }
         assert set(df.columns) == expected_cols
+
+    def test_four_class_dataframe(self, four_class_records: list[dict]):
+        df = records_to_dataframe(four_class_records)
+        assert len(df) == 5
+        categories = df["Threat Category"].tolist()
+        assert "Legitimate" in categories
+        assert "Unverified Candidate" in categories
+        assert "Phishing" in categories
+        assert "Malware Distribution" in categories
+        assert "Unavailable" in categories
+
+        # Verify shadow mode column
+        shadow_modes = df["Shadow Mode"].tolist()
+        assert all("Active" in s for s in shadow_modes)
+
+        # Verify routing column
+        routings = df["Model Routing"].tolist()
+        assert any("Multimodal Full" in r for r in routings)
+        assert any("URL Fallback" in r for r in routings)
+        assert any("Malware Preempted" in r for r in routings)
 
     def test_correct_row_count(self, mixed_records: list[dict]):
         df = records_to_dataframe(mixed_records)
@@ -647,3 +843,160 @@ class TestAnalyzeNewURL:
             assert data is None
             assert err is not None
             assert "Unexpected error during analysis" in err
+
+
+# ── Tests: Visual Analytics & Chart Generation ───────────────────────
+
+class TestVisualAnalyticsCharts:
+    """Validate DataFrame generation and data correctness for all 6 dashboard charts."""
+
+    def test_four_class_distribution_chart_data(self, four_class_records: list[dict]):
+        df = prepare_four_class_distribution(four_class_records)
+        assert not df.empty
+        assert set(df.columns) == {"Category", "Count"}
+        cat_map = dict(zip(df["Category"], df["Count"]))
+        assert cat_map["Legitimate"] == 1
+        assert cat_map["Unverified Candidate"] == 1
+        assert cat_map["Phishing"] == 1
+        assert cat_map["Malware Distribution"] == 1
+        assert cat_map["Unavailable"] == 1
+
+    def test_four_class_distribution_empty_records(self):
+        df = prepare_four_class_distribution([])
+        assert not df.empty
+        assert set(df.columns) == {"Category", "Count"}
+        assert df["Count"].sum() == 0
+
+    def test_risk_score_distribution_tiers(self, four_class_records: list[dict]):
+        df = prepare_risk_score_distribution(four_class_records)
+        assert len(df) == 5
+        assert "Risk Tier" in df.columns
+        assert "Count" in df.columns
+        tier_map = dict(zip(df["Risk Tier"], df["Count"]))
+        # 0.04 -> 0.0 - 0.2, 0.06 -> 0.0 - 0.2, 0.92 -> 0.8 - 1.0, 0.99 -> 0.8 - 1.0
+        assert tier_map["0.0 - 0.2 (Minimal)"] == 2
+        assert tier_map["0.8 - 1.0 (Critical)"] == 2
+
+    def test_risk_score_distribution_empty_records(self):
+        df = prepare_risk_score_distribution([])
+        assert len(df) == 5
+        assert df["Count"].sum() == 0
+
+    def test_daily_activity_timeline(self, four_class_records: list[dict]):
+        df = prepare_daily_activity(four_class_records)
+        assert not df.empty
+        assert "Date" in df.columns
+        assert "Analyses" in df.columns
+        assert "2026-11-04" in df["Date"].values
+        assert df["Analyses"].sum() == 5
+
+    def test_daily_activity_empty_records(self):
+        df = prepare_daily_activity([])
+        assert df.empty
+        assert "Date" in df.columns
+        assert "Analyses" in df.columns
+
+    def test_model_routing_distribution(self, four_class_records: list[dict]):
+        df = prepare_model_routing_distribution(four_class_records)
+        assert not df.empty
+        route_map = dict(zip(df["Routing Path"], df["Count"]))
+        assert route_map["Multimodal Full (51 Feat)"] == 2
+        assert route_map["URL Fallback (20 Feat)"] == 1
+        assert route_map["Malware Preempted"] == 1
+        assert route_map["Model Unavailable"] == 1
+
+    def test_screenshot_availability_breakdown(self, four_class_records: list[dict]):
+        df = prepare_screenshot_availability(four_class_records)
+        assert not df.empty
+        vis_map = dict(zip(df["Screenshot Status"], df["Count"]))
+        assert vis_map["Captured (Extracted)"] == 3
+        assert vis_map["Not Provided"] == 2
+
+    def test_model_disagreement_statistics(self, four_class_records: list[dict]):
+        stats = prepare_model_disagreement_statistics(four_class_records)
+        assert stats["total_multi_analyses"] == 3  # 2 multimodal_full + 1 preempted
+        assert stats["agreed_count"] == 2          # Record 2 (both non-threat: 0 & 0) and Record 3 (both phish: 1 & 1)
+        assert stats["disagreed_count"] == 1       # Record 4 (malware preemption)
+        assert stats["preempted_count"] == 1
+        assert stats["disagreement_rate"] == 33.3
+        assert stats["agreement_rate"] == 66.7
+        assert not stats["breakdown_df"].empty
+
+
+# ── Tests: Detailed Analysis Inspection & Formatter Helpers ─────────
+
+class TestDetailedAnalysisAndRoutingLabels:
+    """Validate routing and visual extraction badges and text formatting."""
+
+    def test_format_routing_labels(self):
+        assert _format_routing_label("multimodal_full") == "Multimodal Full (51 Feat)"
+        assert _format_routing_label("url_model_fallback") == "URL Fallback (20 Feat)"
+        assert _format_routing_label("url_malware_preempted") == "Malware Preempted"
+        assert _format_routing_label("model_unavailable") == "Model Unavailable"
+        assert _format_routing_label(None) == "URL Fallback (Legacy)"
+        assert _format_routing_label("") == "URL Fallback (Legacy)"
+
+    def test_format_visual_status_labels(self):
+        assert _format_visual_status_label("extracted") == "Captured (30 Feat)"
+        assert _format_visual_status_label("not_provided") == "Not Provided"
+        assert _format_visual_status_label("capture_failed") == "Capture Failed"
+        assert _format_visual_status_label("invalid_image") == "Invalid Image"
+        assert _format_visual_status_label(None) == "Not Provided"
+
+
+# ── Tests: Backward Compatibility & Edge Cases ───────────────────────
+
+class TestBackwardCompatibility:
+    """Verify historical pre-multimodal and edge-case record handling."""
+
+    def test_historical_record_without_telemetry_or_routing(self):
+        historical = [
+            {
+                "id": 101,
+                "url": "https://historical-site.com",
+                "prediction": 0,
+                "threat_category": "legitimate",
+                "risk_score": 0.05,
+                "analysis_status": "completed",
+                "analyzed_at": "2026-10-01T10:00:00",
+                # Note: No model_routing, no visual_status, no sub-model telemetry
+            }
+        ]
+        stats = compute_statistics(historical)
+        assert stats["total"] == 1
+        assert stats["legitimate"] == 1
+        assert stats["unverified_candidate"] == 0
+        assert stats["url_fallback_count"] == 1
+
+        df = records_to_dataframe(historical)
+        assert len(df) == 1
+        assert df.iloc[0]["Model Routing"] == "URL Fallback (Legacy)"
+        assert df.iloc[0]["Screenshot Status"] == "Not Provided"
+        assert df.iloc[0]["Shadow Mode"] == "Active 🛡️"
+
+    def test_historical_record_without_threat_category_field(self):
+        records = [
+            {"id": 1, "url": "https://old1.com", "prediction": 0, "analysis_status": "completed"},
+            {"id": 2, "url": "https://old2.com", "prediction": 1, "analysis_status": "completed"},
+            {"id": 3, "url": "https://old3.com", "prediction": 2, "analysis_status": "completed"},
+        ]
+        stats = compute_statistics(records)
+        assert stats["total"] == 3
+        assert stats["legitimate"] == 1
+        assert stats["unverified_candidate"] == 0
+        assert stats["phishing"] == 1
+        assert stats["malware"] == 1
+
+    def test_model_unavailable_isolation_across_all_metrics(self):
+        records = [
+            {"prediction": None, "threat_category": None, "analysis_status": "model_unavailable"},
+        ]
+        stats = compute_statistics(records)
+        assert stats["total"] == 1
+        assert stats["unavailable"] == 1
+        assert stats["legitimate"] == 0
+        assert stats["unverified_candidate"] == 0
+        assert stats["phishing"] == 0
+        assert stats["malware"] == 0
+        assert stats["avg_risk_score"] == 0.0
+

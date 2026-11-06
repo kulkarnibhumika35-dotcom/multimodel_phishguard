@@ -1,0 +1,291 @@
+{
+  "metadata": {
+    "execution_timestamp": "2026-11-05T17:41:52.213807+00:00",
+    "model_type": "RandomForestClassifier",
+    "feature_domain": "multimodal_url_and_screenshot",
+    "features_count": 51,
+    "random_state": 42,
+    "best_hyperparameters": {
+      "n_estimators": 100,
+      "max_depth": null,
+      "min_samples_split": 2,
+      "min_samples_leaf": 1,
+      "max_features": "log2"
+    },
+    "limitation_notice": "CRITICAL LIMITATION: Legitimate class consists of Tranco candidates ('unverified_candidate') rather than manually verified benign ground truth. The multimodal classifier cannot be claimed as fully validated or deployed as a standalone production oracle without human/hybrid corroboration."
+  },
+  "dataset_split": {
+    "train_samples_count": 1190,
+    "test_samples_count": 296,
+    "train_class_counts": {
+      "phishing": 550,
+      "unverified_candidate": 640
+    },
+    "test_class_counts": {
+      "phishing": 137,
+      "unverified_candidate": 159
+    },
+    "domain_leakage_count": 0,
+    "hash_leakage_count": 0
+  },
+  "hyperparameter_tuning_train_cv": [
+    {
+      "candidate_id": 1,
+      "params": {
+        "n_estimators": 100,
+        "max_depth": null,
+        "min_samples_split": 2,
+        "min_samples_leaf": 1,
+        "max_features": "sqrt"
+      },
+      "cv_f1_mean": 0.9862,
+      "cv_f1_std": 0.0093,
+      "cv_accuracy_mean": 0.9874,
+      "cv_accuracy_std": 0.0084
+    },
+    {
+      "candidate_id": 2,
+      "params": {
+        "n_estimators": 200,
+        "max_depth": null,
+        "min_samples_split": 2,
+        "min_samples_leaf": 1,
+        "max_features": "sqrt"
+      },
+      "cv_f1_mean": 0.9871,
+      "cv_f1_std": 0.009,
+      "cv_accuracy_mean": 0.9882,
+      "cv_accuracy_std": 0.0081
+    },
+    {
+      "candidate_id": 3,
+      "params": {
+        "n_estimators": 100,
+        "max_depth": 25,
+        "min_samples_split": 2,
+        "min_samples_leaf": 1,
+        "max_features": "sqrt"
+      },
+      "cv_f1_mean": 0.9862,
+      "cv_f1_std": 0.0093,
+      "cv_accuracy_mean": 0.9874,
+      "cv_accuracy_std": 0.0084
+    },
+    {
+      "candidate_id": 4,
+      "params": {
+        "n_estimators": 100,
+        "max_depth": null,
+        "min_samples_split": 5,
+        "min_samples_leaf": 1,
+        "max_features": "sqrt"
+      },
+      "cv_f1_mean": 0.9853,
+      "cv_f1_std": 0.008,
+      "cv_accuracy_mean": 0.9866,
+      "cv_accuracy_std": 0.0072
+    },
+    {
+      "candidate_id": 5,
+      "params": {
+        "n_estimators": 100,
+        "max_depth": null,
+        "min_samples_split": 2,
+        "min_samples_leaf": 1,
+        "max_features": "log2"
+      },
+      "cv_f1_mean": 0.988,
+      "cv_f1_std": 0.0075,
+      "cv_accuracy_mean": 0.9891,
+      "cv_accuracy_std": 0.0068
+    }
+  ],
+  "cross_validation_train_5fold": {
+    "f1_scores": [
+      0.9862,
+      0.9862,
+      1.0,
+      0.977,
+      0.9908
+    ],
+    "f1_mean": 0.988,
+    "f1_std": 0.0075,
+    "accuracy_scores": [
+      0.9874,
+      0.9874,
+      1.0,
+      0.979,
+      0.9916
+    ],
+    "accuracy_mean": 0.9891,
+    "accuracy_std": 0.0068
+  },
+  "test_metrics": {
+    "accuracy": 0.9865,
+    "precision": 1.0,
+    "recall": 0.9708,
+    "f1_score": 0.9852,
+    "macro_precision": 0.9877,
+    "macro_recall": 0.9854,
+    "macro_f1": 0.9864,
+    "roc_auc": 0.9987,
+    "phishing_recall": 0.9708,
+    "confusion_matrix": {
+      "true_negative_candidate": 159,
+      "false_positive_candidate_as_phish": 0,
+      "false_negative_phish_as_candidate": 4,
+      "true_positive_phish": 133
+    },
+    "classification_report": {
+      "unverified_candidate": {
+        "precision": 0.9754601226993865,
+        "recall": 1.0,
+        "f1-score": 0.9875776397515528,
+        "support": 159.0
+      },
+      "phishing": {
+        "precision": 1.0,
+        "recall": 0.9708029197080292,
+        "f1-score": 0.9851851851851852,
+        "support": 137.0
+      },
+      "accuracy": 0.9864864864864865,
+      "macro avg": {
+        "precision": 0.9877300613496933,
+        "recall": 0.9854014598540146,
+        "f1-score": 0.986381412468369,
+        "support": 296.0
+      },
+      "weighted avg": {
+        "precision": 0.9868181064500082,
+        "recall": 0.9864864864864865,
+        "f1-score": 0.9864703212529301,
+        "support": 296.0
+      }
+    }
+  },
+  "top_15_feature_importances": [
+    {
+      "feature": "num_slashes",
+      "importance": 0.19582
+    },
+    {
+      "feature": "path_length",
+      "importance": 0.18645
+    },
+    {
+      "feature": "url_entropy",
+      "importance": 0.10422
+    },
+    {
+      "feature": "url_length",
+      "importance": 0.10329
+    },
+    {
+      "feature": "num_digits",
+      "importance": 0.04179
+    },
+    {
+      "feature": "std_brightness",
+      "importance": 0.03041
+    },
+    {
+      "feature": "dominant_color_3_proportion",
+      "importance": 0.02847
+    },
+    {
+      "feature": "std_green",
+      "importance": 0.02768
+    },
+    {
+      "feature": "color_variance",
+      "importance": 0.02762
+    },
+    {
+      "feature": "std_blue",
+      "importance": 0.02152
+    },
+    {
+      "feature": "hostname_length",
+      "importance": 0.01676
+    },
+    {
+      "feature": "image_entropy",
+      "importance": 0.0148
+    },
+    {
+      "feature": "std_red",
+      "importance": 0.01379
+    },
+    {
+      "feature": "dominant_color_2_proportion",
+      "importance": 0.01334
+    },
+    {
+      "feature": "num_dots",
+      "importance": 0.01132
+    }
+  ],
+  "cross_model_comparison": {
+    "held_out_samples_evaluated": 296,
+    "phishing_samples_count": 137,
+    "candidate_samples_count": 159,
+    "metrics_summary": {
+      "url_only_model": {
+        "accuracy": 0.5946,
+        "precision": 0.5331,
+        "recall": 1.0,
+        "f1_score": 0.6954,
+        "macro_f1": 0.5447,
+        "roc_auc": 0.4664,
+        "phishing_caught": 137,
+        "candidate_false_alarms": 120,
+        "confusion_matrix": {
+          "tn": 39,
+          "fp": 120,
+          "fn": 0,
+          "tp": 137
+        }
+      },
+      "visual_only_model": {
+        "accuracy": 0.8007,
+        "precision": 0.8095,
+        "recall": 0.7445,
+        "f1_score": 0.7757,
+        "macro_f1": 0.7982,
+        "roc_auc": 0.8491,
+        "phishing_caught": 102,
+        "candidate_false_alarms": 24,
+        "confusion_matrix": {
+          "tn": 135,
+          "fp": 24,
+          "fn": 35,
+          "tp": 102
+        }
+      },
+      "multimodal_model": {
+        "accuracy": 0.9865,
+        "precision": 1.0,
+        "recall": 0.9708,
+        "f1_score": 0.9852,
+        "macro_f1": 0.9864,
+        "roc_auc": 0.9987,
+        "phishing_caught": 133,
+        "candidate_false_alarms": 0,
+        "confusion_matrix": {
+          "tn": 159,
+          "fp": 0,
+          "fn": 4,
+          "tp": 133
+        }
+      }
+    },
+    "triangulation": {
+      "all_three_models_caught_phishing": 100,
+      "multimodal_accuracy_improvement_over_visual": 0.1858,
+      "multimodal_accuracy_improvement_over_url": 0.3919,
+      "multimodal_f1_improvement_over_visual": 0.2095,
+      "multimodal_f1_improvement_over_url": 0.2898
+    }
+  }
+}

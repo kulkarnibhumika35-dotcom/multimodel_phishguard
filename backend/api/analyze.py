@@ -23,7 +23,11 @@ async def analyze_endpoint(
     Extracts features, evaluates the model if available,
     and records the result in SQLite.
     """
-    record = analyze_url(url=payload.url, db=db)
+    record = analyze_url(
+        url=payload.url,
+        db=db,
+        screenshot_base64=payload.screenshot_base64,
+    )
     return record
 
 

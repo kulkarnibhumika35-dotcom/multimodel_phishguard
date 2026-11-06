@@ -1,0 +1,118 @@
+{
+  "metadata": {
+    "execution_timestamp": "2026-11-05T17:25:30.440764+00:00",
+    "dataset_path": "C:/Users/kulka/OneDrive/Desktop/fishGuard/datasets/processed/multimodal_features.csv",
+    "dataset_sha256": "4a212d3d0902336373e1431a81284c006dce899752a9f99ab3db2b5c725c8ed0",
+    "total_samples": 1486,
+    "limitation_notice": "CRITICAL PROVENANCE & LABEL COMPATIBILITY NOTICE: 1. The visual dataset legitimate candidate partition originates from Tranco popularity rankings    ('tranco_candidate_unverified', threat_category='unverified_candidate') and is NOT independently    verified benign ground truth. 2. The URL model was trained on PhiUSIIL (with 3 classes: 0=legitimate, 1=phishing, 2=malware_distribution).    The visual model was trained on Zenodo V2.0 (with 2 classes: 0=unverified_candidate, 1=phishing). 3. These classes are NOT interchangeable: treating Tranco candidates as verified legitimate leads to label    incompatibility, as evidenced by lexical domain/path divergence. 4. All multimodal records preserve original label provenance for rigorous auditability."
+  },
+  "schema_verification": {
+    "total_records": 1486,
+    "total_columns": 60,
+    "metadata_columns_match": true,
+    "fused_feature_count": 51,
+    "fused_features_exact_match": true,
+    "url_feature_slice_exact": true,
+    "url_feature_names_json_match": true,
+    "availability_feature_placed_at_index_20": true,
+    "visual_feature_slice_exact": true,
+    "visual_feature_names_json_match": true,
+    "nan_count": 0,
+    "inf_count": 0,
+    "invalid_availability_flags": 0
+  },
+  "url_model_audit": {
+    "model_path": "C:/Users/kulka/OneDrive/Desktop/fishGuard/ml/models/url_model.joblib",
+    "expected_feature_count": 20,
+    "expected_classes": [
+      0,
+      1,
+      2
+    ],
+    "class_mapping": {
+      "0": "legitimate",
+      "1": "phishing",
+      "2": "malware_distribution"
+    },
+    "prediction_interface_valid": true,
+    "probabilities_sum_to_one": true,
+    "predictions_count": {
+      "phishing": 1283,
+      "legitimate": 200,
+      "malware_distribution": 3
+    }
+  },
+  "visual_model_audit": {
+    "model_path": "C:/Users/kulka/OneDrive/Desktop/fishGuard/ml/models/visual_model.joblib",
+    "expected_feature_count": 30,
+    "expected_classes": [
+      0,
+      1
+    ],
+    "class_mapping": {
+      "0": "unverified_candidate",
+      "1": "phishing"
+    },
+    "prediction_interface_valid": true,
+    "probabilities_sum_to_one": true,
+    "predictions_count": {
+      "phishing": 676,
+      "unverified_candidate": 810
+    }
+  },
+  "label_compatibility_audit": {
+    "dataset_categories": {
+      "phishing": 687,
+      "unverified_candidate": 799
+    },
+    "provenance_breakdown": {
+      "phishtank_verified": 687,
+      "tranco_candidate_unverified": 799
+    },
+    "url_model_3class_vs_visual_2class": {
+      "url_classes": [
+        "0: legitimate",
+        "1: phishing",
+        "2: malware_distribution"
+      ],
+      "visual_classes": [
+        "0: unverified_candidate",
+        "1: phishing"
+      ],
+      "dataset_classes": [
+        "unverified_candidate (Tranco)",
+        "phishing (PhishTank)"
+      ],
+      "interchangeable": false,
+      "reason": "Tranco popularity candidates are unverified and cannot be treated as verified benign ground truth. The URL model was trained on PhiUSIIL (with 3 classes) and flags 75.7% of Tranco candidates as phishing, reflecting lexical distribution divergence between popular homepages/deep URLs and verified benign corpora."
+    }
+  },
+  "concordance_analysis": {
+    "total_agreement_count": 849,
+    "total_samples": 1486,
+    "agreement_rate": 0.5713,
+    "breakdown": {
+      "both_predict_phishing": 661,
+      "both_predict_candidate_nonphish": 188,
+      "url_phishing_visual_candidate": 622,
+      "url_candidate_visual_phishing": 15
+    },
+    "phishing_recall_comparison": {
+      "total_phishing_samples": 687,
+      "url_model_detected": 678,
+      "url_model_recall": 0.9869,
+      "visual_model_detected": 652,
+      "visual_model_recall": 0.9491,
+      "both_detected": 643,
+      "either_detected": 687,
+      "multimodal_potential_recall": 1.0
+    },
+    "candidate_handling_comparison": {
+      "total_candidate_samples": 799,
+      "url_model_flagged_as_phish": 605,
+      "url_model_false_alarm_rate_on_candidates": 0.7572,
+      "visual_model_flagged_as_phish": 24,
+      "visual_model_false_alarm_rate_on_candidates": 0.03
+    }
+  }
+}

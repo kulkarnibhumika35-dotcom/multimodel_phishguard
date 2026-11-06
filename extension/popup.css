@@ -6,9 +6,9 @@
 }
 
 body {
-  width: 370px;
+  width: 380px;
   min-height: 420px;
-  max-height: 590px;
+  max-height: 600px;
   overflow-y: auto;
   font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
   background: #0b1120;
@@ -23,13 +23,16 @@ body {
 body::-webkit-scrollbar {
   width: 6px;
 }
+
 body::-webkit-scrollbar-track {
   background: #0b1120;
 }
+
 body::-webkit-scrollbar-thumb {
   background: #1c2d45;
   border-radius: 3px;
 }
+
 body::-webkit-scrollbar-thumb:hover {
   background: #00e5ff55;
 }
@@ -54,6 +57,10 @@ body::-webkit-scrollbar-thumb:hover {
 
 .shield-safe {
   filter: drop-shadow(0 0 8px #00e676);
+}
+
+.shield-candidate {
+  filter: drop-shadow(0 0 8px #38bdf8);
 }
 
 .shield-danger {
@@ -176,7 +183,9 @@ body::-webkit-scrollbar-thumb:hover {
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* ===== Error ===== */
@@ -238,7 +247,42 @@ body::-webkit-scrollbar-thumb:hover {
   word-break: break-word;
 }
 
-/* Notice / Recommendation */
+/* ===== Pipeline & Routing Metadata ===== */
+.meta-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.meta-card {
+  background: #111b2e;
+  border: 1px solid #1c2d45;
+  border-radius: 6px;
+  padding: 6px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.meta-label {
+  font-size: 8.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: #5a7a96;
+  letter-spacing: 0.5px;
+}
+
+.meta-value {
+  font-size: 11px;
+  font-weight: 600;
+  color: #8be9fd;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Notice / Recommendation Banner */
 .info-notice {
   margin-top: 8px;
   border-radius: 6px;
@@ -254,6 +298,12 @@ body::-webkit-scrollbar-thumb:hover {
   background: #082516;
   border-color: #00e67666;
   color: #a7f3d0;
+}
+
+.notice-candidate {
+  background: #082032;
+  border-color: #38bdf866;
+  color: #bae6fd;
 }
 
 .notice-danger {
@@ -274,7 +324,28 @@ body::-webkit-scrollbar-thumb:hover {
   color: #fde68a;
 }
 
-/* ===== Probabilities Section ===== */
+/* ===== Shadow-Mode Advisory Notice ===== */
+.shadow-advisory {
+  margin-top: 8px;
+  background: #0c1c2e;
+  border: 1px solid #19466e;
+  border-radius: 6px;
+  padding: 6px 9px;
+  font-size: 10px;
+  line-height: 1.35;
+  color: #7dd3fc;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.shadow-icon {
+  font-size: 12px;
+  color: #38bdf8;
+  flex-shrink: 0;
+}
+
+/* ===== Probabilities Section (3-Class Unified System) ===== */
 .section-subtitle {
   font-size: 10px;
   font-weight: 600;
@@ -325,6 +396,10 @@ body::-webkit-scrollbar-thumb:hover {
 
 .legit-bar {
   background: linear-gradient(90deg, #00c853, #00e676);
+}
+
+.candidate-bar {
+  background: linear-gradient(90deg, #0284c7, #38bdf8);
 }
 
 .phish-bar {
@@ -395,6 +470,12 @@ body::-webkit-scrollbar-thumb:hover {
   border: 1px solid #00e67655;
 }
 
+.badge-candidate {
+  background: #0c2d48;
+  color: #38bdf8;
+  border: 1px solid #38bdf855;
+}
+
 .badge-threat {
   background: #331015;
   color: #ff5252;
@@ -413,11 +494,124 @@ body::-webkit-scrollbar-thumb:hover {
   line-height: 1.35;
 }
 
+/* ===== Multi-Model Telemetry Breakdown (Collapsible) ===== */
+.multi-model-details {
+  margin-top: 10px;
+  background: #111b2e;
+  border: 1px solid #1c2d45;
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+
+.details-summary {
+  cursor: pointer;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: #5a7a96;
+  letter-spacing: 0.7px;
+  padding: 2px 0;
+  user-select: none;
+}
+
+.details-summary:hover {
+  color: #00e5ff;
+}
+
+.sub-models-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.sub-model-card {
+  background: #0b1120;
+  border: 1px solid #1c2d45;
+  border-radius: 6px;
+  padding: 6px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.sub-model-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.sub-model-name {
+  font-size: 10px;
+  font-weight: 600;
+  color: #8be9fd;
+}
+
+.sub-badge {
+  font-size: 8.5px;
+  font-weight: 600;
+  padding: 1px 4px;
+  border-radius: 3px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.sub-badge-active {
+  background: #003320;
+  color: #00e676;
+  border: 1px solid #00e67655;
+}
+
+.sub-badge-warn {
+  background: #332200;
+  color: #ffab00;
+  border: 1px solid #ffab0055;
+}
+
+.sub-badge-neutral {
+  background: #1a2638;
+  color: #94a3b8;
+  border: 1px solid #1c2d45;
+}
+
+.sub-model-row {
+  font-size: 10px;
+  color: #94a3b8;
+  display: flex;
+  gap: 4px;
+}
+
+.sub-model-row strong {
+  color: #e2e8f0;
+}
+
+.sub-probs-line {
+  font-size: 9.5px;
+  color: #64748b;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  margin-top: 1px;
+}
+
 /* ===== Status Colors ===== */
-.status-safe    { color: #00e676 !important; }
-.status-danger  { color: #ff4060 !important; }
-.status-malware { color: #d500f9 !important; }
-.status-warn    { color: #ffab00 !important; }
+.status-safe {
+  color: #00e676 !important;
+}
+
+.status-candidate {
+  color: #38bdf8 !important;
+}
+
+.status-danger {
+  color: #ff4060 !important;
+}
+
+.status-malware {
+  color: #d500f9 !important;
+}
+
+.status-warn {
+  color: #ffab00 !important;
+}
 
 /* ===== Footer ===== */
 .footer {

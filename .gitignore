@@ -23,6 +23,11 @@ env/
 # Datasets
 datasets/raw/
 datasets/processed/
+datasets/screenshots/
+datasets/downloads/
+*.zip
+*.tar.gz
+*.parquet
 # ML model artifacts
 ml/models/url_model.joblib
 ml/models/*.pkl

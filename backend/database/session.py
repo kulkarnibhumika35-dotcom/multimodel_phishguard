@@ -24,6 +24,8 @@ ANALYSIS_MIGRATION_COLUMNS: dict[str, str] = {
     "class_probabilities": "JSON",
     "top_features": "JSON",
     "explanation": "JSON",
+    "visual_status": "VARCHAR DEFAULT 'not_provided'",
+    "visual_features": "JSON",
 }
 
 

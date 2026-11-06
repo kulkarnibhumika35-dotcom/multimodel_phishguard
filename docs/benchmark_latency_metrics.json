@@ -1,0 +1,56 @@
+{
+  "url_analysis": {
+    "mean": 52.08,
+    "median": 41.82,
+    "p90": 66.71,
+    "p99": 202.63,
+    "min": 30.75,
+    "max": 202.63,
+    "std": 29.89
+  },
+  "screenshot_decoding": {
+    "mean": 27.19,
+    "median": 23.24,
+    "p90": 48.99,
+    "p99": 72.31,
+    "min": 10.07,
+    "max": 72.31,
+    "std": 13.65
+  },
+  "visual_feature_extraction": {
+    "mean": 81.03,
+    "median": 72.6,
+    "p90": 132.19,
+    "p99": 172.7,
+    "min": 62.21,
+    "max": 172.7,
+    "std": 24.78
+  },
+  "multimodal_inference": {
+    "mean": 47.52,
+    "median": 39.17,
+    "p90": 68.78,
+    "p99": 135.15,
+    "min": 30.23,
+    "max": 135.15,
+    "std": 19.54
+  },
+  "api_fallback_roundtrip": {
+    "mean": 1197.38,
+    "median": 1225.17,
+    "p90": 1407.84,
+    "p99": 1581.56,
+    "min": 855.05,
+    "max": 1581.56,
+    "std": 180.96
+  },
+  "api_multimodal_roundtrip": {
+    "mean": 1491.55,
+    "median": 1471.92,
+    "p90": 1746.46,
+    "p99": 2591.93,
+    "min": 1015.0,
+    "max": 2591.93,
+    "std": 271.58
+  }
+}

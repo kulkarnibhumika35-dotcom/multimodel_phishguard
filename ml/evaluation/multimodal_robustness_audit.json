@@ -1,0 +1,274 @@
+{
+  "metadata": {
+    "execution_timestamp": "2026-11-05T18:06:01.111452+00:00",
+    "model_path": "C:/Users/kulka/OneDrive/Desktop/fishGuard/ml/models/multimodal_model.joblib",
+    "model_sha256": "a59c0092c21122cb26c0bf4b0f5a72b0613de28493373d4c299bbd6f17ea1ca3",
+    "train_csv_path": "C:/Users/kulka/OneDrive/Desktop/fishGuard/datasets/processed/multimodal_train.csv",
+    "test_csv_path": "C:/Users/kulka/OneDrive/Desktop/fishGuard/datasets/processed/multimodal_test.csv"
+  },
+  "governance_limitation_notice": "CRITICAL GOVERNANCE LIMITATION: The non-phishing class comprises Tranco popularity candidates ('unverified_candidate') rather than verified benign ground truth. The model cannot be claimed as production-ready or generalizable to arbitrary real-world traffic without controlled live testing, telemetry monitoring, and human-in-the-loop triage.",
+  "data_leakage_audit": {
+    "train_samples_count": 1190,
+    "test_samples_count": 296,
+    "train_unique_domains": 1190,
+    "test_unique_domains": 296,
+    "domain_overlap_count": 0,
+    "original_url_overlap_count": 0,
+    "normalized_url_overlap_count": 0,
+    "screenshot_hash_overlap_count": 0,
+    "visual_feature_vector_exact_overlap_count": 0,
+    "url_feature_vector_exact_overlap_count": 75,
+    "metadata_columns_leaked": [],
+    "target_columns_leaked": [],
+    "input_feature_count": 51,
+    "leakage_audit_passed": true
+  },
+  "feature_ablation_audit": {
+    "true_ablation_experiments": {
+      "full_multimodal_51_features": {
+        "accuracy": 0.9865,
+        "precision": 1.0,
+        "recall": 0.9708,
+        "f1_score": 0.9852,
+        "macro_f1": 0.9864,
+        "roc_auc": 0.9987,
+        "phishing_caught": 133,
+        "candidate_false_alarms": 0,
+        "confusion_matrix": {
+          "tn": 159,
+          "fp": 0,
+          "fn": 4,
+          "tp": 133
+        }
+      },
+      "url_only_visual_masked": {
+        "accuracy": 0.9662,
+        "precision": 0.9704,
+        "recall": 0.9562,
+        "f1_score": 0.9632,
+        "macro_f1": 0.966,
+        "roc_auc": 0.9944,
+        "phishing_caught": 131,
+        "candidate_false_alarms": 4,
+        "confusion_matrix": {
+          "tn": 155,
+          "fp": 4,
+          "fn": 6,
+          "tp": 131
+        }
+      },
+      "visual_only_url_masked": {
+        "accuracy": 0.6453,
+        "precision": 1.0,
+        "recall": 0.2336,
+        "f1_score": 0.3787,
+        "macro_f1": 0.5652,
+        "roc_auc": 0.6427,
+        "phishing_caught": 32,
+        "candidate_false_alarms": 0,
+        "confusion_matrix": {
+          "tn": 159,
+          "fp": 0,
+          "fn": 105,
+          "tp": 32
+        }
+      }
+    },
+    "standalone_single_modality_models": {
+      "standalone_url_model": {
+        "accuracy": 0.5946,
+        "precision": 0.5331,
+        "recall": 1.0,
+        "f1_score": 0.6954,
+        "macro_f1": 0.5447,
+        "roc_auc": 0.4664,
+        "phishing_caught": 137,
+        "candidate_false_alarms": 120,
+        "confusion_matrix": {
+          "tn": 39,
+          "fp": 120,
+          "fn": 0,
+          "tp": 137
+        }
+      },
+      "standalone_visual_model": {
+        "accuracy": 0.8007,
+        "precision": 0.8095,
+        "recall": 0.7445,
+        "f1_score": 0.7757,
+        "macro_f1": 0.7982,
+        "roc_auc": 0.8491,
+        "phishing_caught": 102,
+        "candidate_false_alarms": 24,
+        "confusion_matrix": {
+          "tn": 135,
+          "fp": 24,
+          "fn": 35,
+          "tp": 102
+        }
+      }
+    },
+    "ablation_comparison_notes": "True ablation tests the graceful degradation of the already-trained multimodal decision trees when one sensor channel is unavailable at inference time. Standalone models reflect separate weights trained exclusively on single-modality data."
+  },
+  "class_mapping_audit": {
+    "multimodal_class_mapping": {
+      "0": "unverified_candidate",
+      "1": "phishing"
+    },
+    "multimodal_mapping_valid": true,
+    "url_model_class_mapping": {
+      "class_to_name": {
+        "0": "legitimate",
+        "1": "phishing",
+        "2": "malware_distribution"
+      },
+      "name_to_class": {
+        "legitimate": 0,
+        "phishing": 1,
+        "malware_distribution": 2
+      },
+      "num_classes": 3
+    },
+    "url_mapping_valid": true,
+    "visual_model_class_mapping": {
+      "0": "unverified_candidate",
+      "1": "phishing"
+    },
+    "malware_isolated_from_non_threat_classes": true,
+    "train_categories": {
+      "phishing": 550,
+      "unverified_candidate": 640
+    },
+    "test_categories": {
+      "phishing": 137,
+      "unverified_candidate": 159
+    },
+    "malware_samples_in_dataset_count": 0,
+    "positive_class_definition": "Class 1: phishing (PhishTank verified)",
+    "negative_class_definition": "Class 0: unverified_candidate (Tranco popularity)"
+  },
+  "robustness_and_error_analysis": {
+    "false_negatives_count": 4,
+    "false_negatives": [
+      {
+        "csv_line_num": "1457",
+        "original_url": "http://cw-net.de",
+        "registered_domain": "cw-net.de",
+        "label_provenance": "phishtank_verified",
+        "multimodal_prob_phish": 0.32,
+        "url_model_pred": 1,
+        "url_model_prob": 1.0,
+        "visual_model_pred": 0,
+        "visual_model_prob": 0.22,
+        "url_length": 16,
+        "path_length": 0,
+        "num_slashes": 2,
+        "url_entropy": 3.4528,
+        "image_entropy": 1.6264,
+        "color_variance": 4920.313
+      },
+      {
+        "csv_line_num": "14909",
+        "original_url": "http://www.my-loyola.com",
+        "registered_domain": "my-loyola.com",
+        "label_provenance": "phishtank_verified",
+        "multimodal_prob_phish": 0.31,
+        "url_model_pred": 1,
+        "url_model_prob": 1.0,
+        "visual_model_pred": 0,
+        "visual_model_prob": 0.4,
+        "url_length": 24,
+        "path_length": 0,
+        "num_slashes": 2,
+        "url_entropy": 3.6887,
+        "image_entropy": 1.092,
+        "color_variance": 2337.3854
+      },
+      {
+        "csv_line_num": "17559",
+        "original_url": "https://micronicsolutions.com",
+        "registered_domain": "micronicsolutions.com",
+        "label_provenance": "phishtank_verified",
+        "multimodal_prob_phish": 0.3,
+        "url_model_pred": 1,
+        "url_model_prob": 1.0,
+        "visual_model_pred": 1,
+        "visual_model_prob": 0.9,
+        "url_length": 29,
+        "path_length": 0,
+        "num_slashes": 2,
+        "url_entropy": 3.7194,
+        "image_entropy": 1.235,
+        "color_variance": 135.2962
+      },
+      {
+        "csv_line_num": "23481",
+        "original_url": "http://demerdashscan.com",
+        "registered_domain": "demerdashscan.com",
+        "label_provenance": "phishtank_verified",
+        "multimodal_prob_phish": 0.3,
+        "url_model_pred": 1,
+        "url_model_prob": 1.0,
+        "visual_model_pred": 1,
+        "visual_model_prob": 0.59,
+        "url_length": 24,
+        "path_length": 0,
+        "num_slashes": 2,
+        "url_entropy": 3.835,
+        "image_entropy": 0.4579,
+        "color_variance": 558.2482
+      }
+    ],
+    "false_negatives_root_cause": "All 4 false negatives (http://cw-net.de, http://www.my-loyola.com, https://micronicsolutions.com, http://demerdashscan.com) share the structural pattern path_length=0, num_slashes=2 (bare/apex root domains). Because the vast majority of phishing URLs feature deep paths, bare domain phishing with professional visual rendering produces phishing probabilities slightly below the 0.5 threshold (P=0.30 to 0.32).",
+    "confidence_margins": {
+      "mean_margin_from_threshold": 0.4476,
+      "min_margin": 0.12,
+      "max_margin": 0.5,
+      "low_margin_count": 11,
+      "low_margin_percentage": 3.72
+    },
+    "url_characteristics_breakdown": {
+      "https_phishing": {
+        "total": 114,
+        "caught": 113,
+        "recall": 0.9912
+      },
+      "http_phishing": {
+        "total": 23,
+        "caught": 20,
+        "recall": 0.8696
+      },
+      "suspicious_tld_phishing": {
+        "total": 9,
+        "caught": 9,
+        "recall": 1.0
+      },
+      "regular_tld_phishing": {
+        "total": 128,
+        "caught": 124,
+        "recall": 0.9688
+      }
+    },
+    "modality_discordance_resolution": {
+      "url_phish_visual_candidate_case_count": 137,
+      "url_phish_visual_candidate_resolution": {
+        "multimodal_predicted_candidate": 104,
+        "multimodal_predicted_phishing": 33,
+        "ground_truth_was_candidate": 102,
+        "ground_truth_was_phishing": 35
+      },
+      "url_candidate_visual_phish_case_count": 6,
+      "url_candidate_visual_phish_resolution": {
+        "multimodal_predicted_candidate": 6,
+        "multimodal_predicted_phishing": 0,
+        "ground_truth_was_candidate": 6,
+        "ground_truth_was_phishing": 0
+      }
+    }
+  },
+  "controlled_integration_verdict": {
+    "ready_for_controlled_canary_experiment": true,
+    "production_oracle_readiness": false,
+    "recommendation": "Shadow mode evaluation in live backend before full rollout."
+  }
+}
